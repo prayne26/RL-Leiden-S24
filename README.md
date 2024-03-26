@@ -1,3 +1,5 @@
+https://medium.com/@ym1942/deep-q-learning-dqn-tutorial-with-cartpole-v0-5505dbd2409e
+
 # RL-Leiden-S24: Reinforcement Learning Assignment 2
 ## Goal: Training Deep Q-learning Network on Cart Pole environment
 
