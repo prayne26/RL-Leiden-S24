@@ -1,5 +1,4 @@
-# RL-Leiden-S24
-# Reinforcement Learning Assignment 2
+# RL-Leiden-S24: Reinforcement Learning Assignment 2
 ## Goal: Training Deep Q-learning Network on Cart Pole environment
 
 ## File structure:
@@ -10,7 +9,7 @@
                     - Select action based on policy
                     - Update q-values
                     - Evaluate current strategy
-                  The function runs the learner using DQNLearningAgent,BaseAgent, and CartPole classes.
+                  The function runs the learner using DQNLearningAgent & BaseAgent classes and the Cart Pole environment class.
 
 *Experiment.py* contains the functions for running varying learners for varying parameters, collecting the results.
 
