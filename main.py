@@ -1,2 +1,1 @@
 print("yo mama")
-stink
