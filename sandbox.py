@@ -21,5 +21,6 @@ import pygame
 from gymnasium.utils.play import play
 def play_cartgame():
     mapping = {(pygame.K_LEFT,): 0, (pygame.K_RIGHT,): 1}
-    play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=8)
+    play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=5)
 
+play_cartgame()
