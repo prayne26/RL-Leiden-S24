@@ -8,8 +8,6 @@ https://keras.io/examples/rl/deep_q_network_breakout/
 ## File structure:
 *Agent.py* contains the DQNLearningAgent.
 
-*DQN_learner.py* contains the 
-
 *Experiment.py* contains the functions for running varying learners for varying parameters, collecting the results.
 
 *Helper.py* contains useful functions for use throughout the other files.
