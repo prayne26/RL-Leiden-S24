@@ -8,8 +8,6 @@ import keras
 import tensorflow
 
 
-# @Bartosz, many of the def() functions are probably redundant and can be coded straight into
-#       the final train() function. I just added them as placeholders for the algorithm.
 
 class DQNAgent:
     def __init__(self, learning_rate=0.001, exploration_factor=0.1, policy='egreedy', verbose=0):
