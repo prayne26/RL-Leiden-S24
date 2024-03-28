@@ -1,5 +1,7 @@
 https://medium.com/@shruti.dhumne/deep-q-network-dqn-90e1a8799871
+
 https://medium.com/@ym1942/deep-q-learning-dqn-tutorial-with-cartpole-v0-5505dbd2409e
+
 https://keras.io/examples/rl/deep_q_network_breakout/
 
 # RL-Leiden-S24: Reinforcement Learning Assignment 2
