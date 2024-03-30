@@ -2,6 +2,7 @@ import gymnasium as gym
 import time
 import numpy as np
 from numpy.random import choice
+from collections import deque
 from Helper import argmax
 from Neural_network import DeepNeuralNetwork
 import keras
@@ -10,36 +11,50 @@ import keras
 #       the final train() function. I just added them as placeholders for the algorithm.
 
 class DQNAgent:
-  def __init__(self, learning_rate, exploration_factor, policy):
-    self.env = gym.make('CartPole-v1')
+  def __init__(self, learning_rate, exploration_factor, policy, RB_bool, TNN_bool):
+    # Parameters
     self.learning_rate = learning_rate
     self.exploration_factor = exploration_factor
-    self.policy = policy
+    self.policy = policy # one of the Boltzmann of Egreddy
+    self.RB_bool = RB_bool
+    self.TNN_bool = TNN_bool
 
-    self.n_actions = 2
+    # Enviorment
+    self.env = gym.make('CartPole-v1')
+    self.n_actions = self.env.action_space.n
+    self.n_states = self.env.observation_space.shape[0]
+
+
+    # Q and target nural network
+    self.nn = DeepNeuralNetwork(self.learning_rate)
+    self.nn_Q = self.nn.custom_network()
+    self.nn_target = self.nn.custom_network()
 
     self.batch_size = 32  # Size of batch taken from replay buffer
     self.max_steps_per_episode = 200
     self.max_episodes = 10
 
-    # replay buffer variables
-    self.action_history = []
-    self.state_history = []
-    self.next_state_history = []
-    self.reward_history = []
-    self.done_history = []
-    self.episode_reward_history = []
-    self.running_reward = 0
-    self.episode_count = 0
 
-  def initialize_replay_memory(self):
-    # probably redundant
-    self.action_history = []
-    self.state_history = []
-    self.next_state_history = []
-    self.reward_history = []
-    self.done_history = []
+    # Replay buffer
+    self.replay_buffer = deque(2000)
+
+    # # replay buffer variables
+    # self.action_history = []
+    # self.state_history = []
+    # self.next_state_history = []
+    # self.reward_history = []
+    # self.done_history = []
+    # self.episode_reward_history = []
+    # self.running_reward = 0
+    # self.episode_count = 0
+
+  
+  def remeber(self):
+    self.replay_buffer.append((state, action, reward, next_state, done))
+  
+  def act(self, state):
     pass
+      
 
   def initialize_Qnetwork(self):
     self.Qnetwork = DeepNeuralNetwork.custom_Qnetwork()
@@ -114,13 +129,12 @@ class DQNAgent:
     ''' Evaluates currently learned strategy '''
     return
 
+  def train():
+    pass
 
 
 
-def train():
-  learning_rate = 0.9
-  exploration_factor = 1
-  policy = 'egreedy'
+def train(policy='egreedy',  exploration_factor=1, learning_rate=0.9):
 
   # initialize environment, replay buffer, network & target network
   agent = DQNAgent(learning_rate, exploration_factor, policy)
