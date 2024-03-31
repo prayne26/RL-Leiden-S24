@@ -13,24 +13,25 @@ def main():
     gamma = 0.99
     policy = 'egreedy'
     epsilon = 0.1
-    train_max = 64 # batch-size
-    nlp = [16,16]
+    batch_size = 32 # batch-size
+    nlp = [24]
+    nlp = [128,128,128]
+
     
     print("Starting running...")
     s = time.time()
     agent = DQNAgent(learning_rate=lr,
                      gamma=gamma,
                      policy=policy,
-                     train_max=train_max,
+                     batch_size=batch_size,
                      epsilon=epsilon,
                      nlp=nlp)
     
     loss_avg, steps = agent.run()
     plot_perf(loss_avg, steps)
     
-    print("Program finished. Total time: {} seconds.".format(time.time()-s))
+    print("Program finished. Total time: {} seconds.".format(round(time.time()-s, 2)))
 
 if __name__ == '__main__':
-    s = time.time()
     main()
-    print("\n Program finished it took {} seconds to run.".format(time.time()-s))
+  

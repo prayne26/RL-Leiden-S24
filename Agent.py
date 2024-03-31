@@ -5,20 +5,23 @@ import os
 from collections import deque
 from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
+import tensorflow as tf
 
 class DQNAgent:
-  def __init__(self, learning_rate, gamma, policy, train_max, RB_bool=True, TNN_bool=True, temp=None, epsilon=None, nlp=[128,128,128]):
+  def __init__(self, learning_rate, gamma, policy, batch_size, RB_bool=True, TNN_bool=True, temp=None, epsilon=None, nlp=[128,128,128]):
     # Parameters
     self.learning_rate = learning_rate
     self.gamma = gamma
     self.policy = policy # one of the Boltzmann of Egreddy
-    self.RB_bool = RB_bool
-    self.TNN_bool = TNN_bool
     self.temp = temp
     self.epsilon = epsilon
     self.training_counts = 0
-    self.train_max = train_max
-    self.weights_updating_frequancy = 100
+    self.batch_size = batch_size
+    self.weights_updating_frequancy = 10
+    self.num_episodes = 1000
+
+    self.RB_bool = RB_bool
+    self.TNN_bool = TNN_bool
 
 
     # Enviorment
@@ -31,14 +34,12 @@ class DQNAgent:
     self.nn = DeepNeuralNetwork(self.n_states, self.n_actions, self.learning_rate, len(nlp), nlp)
     self.nn_Q = self.nn.custom_network()
     self.nn_target = self.nn.custom_network()
+    self.nn_target.set_weights(self.nn_Q.get_weights())
+    self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
 
-    self.batch_size = train_max   # Size of batch taken from replay buffer
-    self.num_episodes = 1000
-    # self.max_steps_per_episode = 200
-    # self.max_episodes = 10
 
     # Replay buffer stroing (state, action, reward, next_state, done) as doubly ended queue
-    self.replay_buffer = deque(maxlen=2000)
+    self.replay_buffer = deque(maxlen=10000)
 
   def save_log(self, log):
     path = "Logs/"
@@ -74,39 +75,39 @@ class DQNAgent:
     return a
   
   def sample_from_replay_memory(self):
-    return random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
+    return random.sample(self.replay_buffer, self.batch_size)
   
   def train(self):
     self.training_counts += 1
+    if len(self.replay_buffer) < self.batch_size:
+            return
 
     batch_sample = self.sample_from_replay_memory()
-    state_b = np.zeros((self.batch_size, self.n_states))
-    next_state_b = np.zeros((self.batch_size, self.n_states))
-    action_b, reward_b, done_b = [], [], []
+    states = np.zeros((self.batch_size, self.n_states))
+    next_states = np.zeros((self.batch_size, self.n_states))
+    actions, rewards, dones = [], [], []
     
     j=0
     for x in batch_sample:
-      state_b[j] = x[0]
-      next_state_b[j] = x[3]
+      states[j] = x[0]
+      next_states[j] = x[3]
       j+=1
 
-      action_b.append(x[1])
-      reward_b.append(x[2])
-      done_b.append(x[4])
+      actions.append(x[1])
+      rewards.append(x[2])
+      dones.append(x[4])
 
-    target = self.nn_Q.predict(state_b)
-    target_next = self.nn_target.predict(next_state_b)
-  
+    target = self.nn_Q.predict(states)
+    target_next = self.nn_target.predict(next_states)
+
     for i in range(self.batch_size):
-      if done_b[i]:
-        q_t = reward_b[i]
+      if dones[i]:
+        target[i][actions[i]] = rewards[i]
       else:
-        q_t = reward_b[i] + self.gamma*np.amax(target_next[i])
-      
-      target[i][action_b[i]] = q_t
+        target[i][actions[i]] = rewards[i] + self.gamma * (np.amax(target_next[i]))
 
-    result = self.nn_Q.fit(x=state_b, y=target, batch_size=self.batch_size, verbose=0)
-    return result
+    res = self.nn_Q.fit(states, target, batch_size=self.batch_size)
+    return res
 
 
   def run(self):
@@ -123,32 +124,27 @@ class DQNAgent:
         action = self.act(state)
         next_state, reward, done, info, _ = self.env.step(action)
         next_state = np.array(next_state).reshape(1, self.n_states)
-        
-        # if not done or i == self.env._max_episode_steps-1:
-        #   reward = reward
-        # else:
-        #   reward = -reward # punishment for failure
-
+        score += reward
+ 
         i+=1
 
         if self.RB_bool:
           self.remeber(state, action, reward, next_state, done)
 
-        if len(self.replay_buffer) >= self.batch_size:
+        if len(self.replay_buffer) >= self.batch_size and self.training_counts%self.weights_updating_frequancy == 0:
           result = self.train()
           loss.append(result.history['loss'])
 
-        if self.TNN_bool and self.training_counts%self.weights_updating_frequancy == 0:
+        if self.TNN_bool and done:
           self.nn_target.set_weights(self.nn_Q.get_weights())
 
         state = next_state
-        score += reward
         steps.append(i)
 
       scores.append(score) 
       loss_avg.append(np.mean(loss))
 
-      log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}".format(e, 
+      log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
                                                                                      self.num_episodes, 
                                                                                      score, 
                                                                                      steps[-1],
