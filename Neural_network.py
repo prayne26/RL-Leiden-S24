@@ -23,14 +23,13 @@ class DeepNeuralNetwork():
             sys.exit() 
             return
         
-        model = keras.Sequential()
-        model.add(layers.Dense(16, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size))
-        
-        for l in range(self.n_layers):
-            for npl in self.neurons_per_layer:
-                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform'))
-                   
-                   
+        model = keras.Sequential()       
+        for l,npl in zip(range(self.n_layers), self.neurons_per_layer):
+            if  l == 0:
+                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size, name="L"+str(l)))
+            else:
+                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', name="L"+str(l)))
+                        
         model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))
               
         model.compile(loss='mse', optimizer=Adam(lr=self.lr), metrics=['accuracy', 'mse'])

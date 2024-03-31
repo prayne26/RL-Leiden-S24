@@ -1,160 +1,141 @@
 import gymnasium as gym
 import numpy as np
-import random
 import os
+import random
 from collections import deque
 from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
-import tensorflow as tf
+from tensorflow.keras import models, layers, optimizers
 
 class DQNAgent:
-  def __init__(self, learning_rate, gamma, policy, batch_size, RB_bool=True, TNN_bool=True, temp=None, epsilon=None, nlp=[128,128,128]):
-    # Parameters
-    self.learning_rate = learning_rate
-    self.gamma = gamma
-    self.policy = policy # one of the Boltzmann of Egreddy
-    self.temp = temp
-    self.epsilon = epsilon
-    self.training_counts = 0
-    self.batch_size = batch_size
-    self.weights_updating_frequancy = 10
-    self.num_episodes = 1000
+    def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, npl):
+        '''npl - nurons per layer,, it will be a list with the numbers of nurons in the layers []'''
+        self.n_state = state_size
+        self.n_actions = action_size
+        self.replay_buffer = deque(maxlen=2000)
 
-    self.RB_bool = RB_bool
-    self.TNN_bool = TNN_bool
+        self.policy = policy
+        self.gamma = gamma    # discount rate
+        self.epsilon = epsilon   # exploration rate
+        self.epsilon_min = 0.01
+        self.epsilon_decay = 0.995
+        self.learning_rate = learning_rate
+        self.batch_size = batch_size
 
+        nn = DeepNeuralNetwork(state_size, action_size, learning_rate, len(npl), npl)
+        self.model_Q = nn.custom_network() # main neural network
+        self.model_T = nn.custom_network()# target neural network
+        self.update_target_model()
 
-    # Enviorment
-    self.env = gym.make('CartPole-v1')
-    self.n_actions = self.env.action_space.n
-    self.n_states = self.env.observation_space.shape[0]
+        self.max_episodes = 1000
+        self.max_steps = 500 # the envirment limit
+        self.weights_updating_frequancy = 10
 
+    def update_target_model(self):
+        # Copy weights from the main model to target_model
+        self.model_T.set_weights(self.model_Q.get_weights())
 
-    # Q and target nural network
-    self.nn = DeepNeuralNetwork(self.n_states, self.n_actions, self.learning_rate, len(nlp), nlp)
-    self.nn_Q = self.nn.custom_network()
-    self.nn_target = self.nn.custom_network()
-    self.nn_target.set_weights(self.nn_Q.get_weights())
-    self.optimizer = tf.keras.optimizers.Adam(learning_rate=learning_rate)
+    def remember(self, state, action, reward, next_state, done):
+        self.replay_buffer.append((state, action, reward, next_state, done))
 
-
-    # Replay buffer stroing (state, action, reward, next_state, done) as doubly ended queue
-    self.replay_buffer = deque(maxlen=10000)
-
-  def save_log(self, log):
-    path = "Logs/"
-    file_name = "log.txt"
-    if not os.path.exists(path):
-      os.makedirs(path)
-    try:
-      with open(path+file_name, "a") as myfile:
-        myfile.write(log)
-    except:
-        print("Unable to save to files.")
-
-  def remeber(self, state, action, reward, next_state, done):
-    self.replay_buffer.append((state, action, reward, next_state, done))
-  
-  def act(self, state):
-    if self.policy == 'egreedy':
-      if self.epsilon is None:
-        raise KeyError("Provide an epsilon")
-            
-      p = np.random.random()
-      if p < self.epsilon:
-        a = np.random.randint(0, self.n_actions)
-      else:
-        a = argmax(self.nn_Q.predict(state))
-                        
-    elif self.policy == 'softmax':
-      if self.temp is None:
-          raise KeyError("Provide a temperature")
-   
-      a = np.random.choice(range(self.n_actions), 1, p=softmax(self.nn_Q.predict(state), self.temp))[0]
-        
-    return a
-  
-  def sample_from_replay_memory(self):
-    return random.sample(self.replay_buffer, self.batch_size)
-  
-  def train(self):
-    self.training_counts += 1
-    if len(self.replay_buffer) < self.batch_size:
-            return
-
-    batch_sample = self.sample_from_replay_memory()
-    states = np.zeros((self.batch_size, self.n_states))
-    next_states = np.zeros((self.batch_size, self.n_states))
-    actions, rewards, dones = [], [], []
+    def act(self, state):
+      if self.policy == 'egreedy':
+        if self.epsilon is None:
+          raise KeyError("Provide an epsilon")
+              
+        p = np.random.random()
+        if p <= self.epsilon:
+          a = np.random.randint(0, self.n_actions)
+        else:
+          a = argmax(self.model_Q.predict(state))
+                          
+      elif self.policy == 'softmax':
+        if self.temp is None:
+            raise KeyError("Provide a temperature")
     
-    j=0
-    for x in batch_sample:
-      states[j] = x[0]
-      next_states[j] = x[3]
-      j+=1
+        a = np.random.choice(range(self.n_actions), 1, p=softmax(self.model_Q.predict(state), self.temp))[0]
+        
+      return a
+    
+    def sample_from_replay_memory(self):
+      return random.sample(self.replay_buffer, self.batch_size)
 
-      actions.append(x[1])
-      rewards.append(x[2])
-      dones.append(x[4])
+    def replay(self):
+        minibatch = self.sample_from_replay_memory()
+        for state, action, reward, next_state, done in minibatch:
+            target = reward
+            if not done:
+                target = (reward + np.multiply(self.gamma, np.amax(self.model_T.predict(next_state)[0])))
+            target_f = self.model_Q.predict(state)
+            target_f[0][action] = target
+            self.model_Q.fit(state, target_f, epochs=1, verbose=0)
+        
+        if self.epsilon > self.epsilon_min:
+            self.epsilon *= self.epsilon_decay
 
-    target = self.nn_Q.predict(states)
-    target_next = self.nn_target.predict(next_states)
+    def load(self, name):
+        self.model_Q.load_weights(name)
 
-    for i in range(self.batch_size):
-      if dones[i]:
-        target[i][actions[i]] = rewards[i]
-      else:
-        target[i][actions[i]] = rewards[i] + self.gamma * (np.amax(target_next[i]))
+    def save(self, name):
+        self.model_Q.save_weights(name)
 
-    res = self.nn_Q.fit(states, target, batch_size=self.batch_size)
-    return res
+    def save_log(self, log):
+      path = "Logs/"
+      file_name = "log.txt"
+      if not os.path.exists(path):
+        os.makedirs(path)
+      try:
+        with open(path+file_name, "a") as myfile:
+          myfile.write(log)
+      except:
+          print("Unable to save to files.")
 
+    def run(self):
+        print("Starting running...")
+        env = gym.make('CartPole-v1')
+        # scores = deque(maxlen=100)
+        loss_avg, scores, steps = [], [], []
+        for e in range(self.max_episodes):  # we may try diffrent criterion for stopping
+            loss = []
+            score = 0
+            state, _ = env.reset()
+            state = np.reshape(state, [1, self.n_state])
+            for step in range(self.max_steps):  # CartPole-v1 enforced max step
+                action = self.act(state)
+                next_state, reward, done, info, _ = env.step(action)
+                next_state = np.reshape(next_state, [1, self.n_state])
 
-  def run(self):
-    print("Starting running...")
-    loss_avg, scores, steps = [], [], []
-    for e in range(self.num_episodes):
-      loss = []
-      score = 0
-      state, _ = self.env.reset()
-      state = np.array(state).reshape(1, self.n_states)
-      done, i = False, 0
+                score += reward
 
-      while not done:
-        action = self.act(state)
-        next_state, reward, done, info, _ = self.env.step(action)
-        next_state = np.array(next_state).reshape(1, self.n_states)
-        score += reward
- 
-        i+=1
-
-        if self.RB_bool:
-          self.remeber(state, action, reward, next_state, done)
-
-        if len(self.replay_buffer) >= self.batch_size and self.training_counts%self.weights_updating_frequancy == 0:
-          result = self.train()
-          loss.append(result.history['loss'])
-
-        if self.TNN_bool and done:
-          self.nn_target.set_weights(self.nn_Q.get_weights())
-
-        state = next_state
-        steps.append(i)
-
-      scores.append(score) 
-      loss_avg.append(np.mean(loss))
-
-      log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
-                                                                                     self.num_episodes, 
+                self.remember(state, action, reward, next_state, done)
+                state = next_state
+                if done:
+                    log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
+                                                                                     self.max_episodes, 
                                                                                      score, 
-                                                                                     steps[-1],
+                                                                                     step,
                                                                                      self.epsilon,
                                                                                      self.learning_rate)
-      self.save_log(log)
-      print(log)
-    
-    print('Scores: ', scores)
-    print('Steps: ', steps)
-    return loss_avg, steps
+                    self.save_log(log)
+                    print(log)
+                    break
+                
+            # scores.append(step)
+            # if len(scores) == 100 and np.mean(scores) >= 195.0:
+            #     print(f"Solved after {e} episodes!")
+            #     break
+            scores.append(score) 
+            loss_avg.append(np.mean(loss))
 
+            if len(self.replay_buffer) > self.batch_size:
+                self.replay()
+            
+            if e % self.weights_updating_frequancy == 0:
+              self.update_target_model()
+
+        env.close()
+
+        print('Scores: ', scores)
+        print('Steps: ', steps)
+        return loss_avg, steps 
 
