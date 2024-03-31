@@ -79,7 +79,7 @@ class DQNAgent:
   def train(self):
     self.training_counts += 1
 
-    if self.TNN_bool and self.training_counts%self.weights_updating_frequancy:
+    if self.TNN_bool and self.training_counts%self.weights_updating_frequancy == 0:
       self.nn_target.set_weights(self.nn_Q.get_weights())
 
     batch_sample = self.sample_from_replay_memory()
@@ -87,7 +87,6 @@ class DQNAgent:
     next_state_b = np.zeros((self.batch_size, self.n_states))
     action_b, reward_b, done_b = [], [], []
     
-
     j=0
     for x in batch_sample:
       state_b[j] = x[0]
@@ -109,8 +108,8 @@ class DQNAgent:
       
       target[i][action_b[i]] = q_t
 
-    results = self.nn_Q.fit(x=state_b, y=target, batch_size=self.batch_size, verbose=0)
-    return results
+    result = self.nn_Q.fit(x=state_b, y=target, batch_size=self.batch_size, verbose=0)
+    return result
 
   def run(self):
     print("Starting running...")
@@ -140,8 +139,8 @@ class DQNAgent:
         i+=1
 
         if len(self.replay_buffer) >= self.train_max:
-          results = self.train()
-          loss.append(results.history['loss'])
+          result = self.train()
+          loss.append(result.history['loss'])
 
         if done:
           steps.append(i)
@@ -150,7 +149,7 @@ class DQNAgent:
       scores.append(score) 
       loss_avg.append(np.mean(loss))
 
-      log = "Episode: {}/{}, Total reward: {}, Total step: {} Parameters: epsilon={}, lr={}".format(e, 
+      log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}".format(e, 
                                                                                      self.num_episodes, 
                                                                                      score, 
                                                                                      steps[-1],
