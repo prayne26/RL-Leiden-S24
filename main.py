@@ -3,11 +3,11 @@ from Agent import DQNAgent
 import time
 
 def main():
-    lr = 0.001
+    lr = 0.0001
     gamma = 0.95
     policy = 'egreedy'
     epsilon = 0.1
-    train_max = 32 # batch-size
+    train_max = 128 # batch-size
     
     print("Starting running...")
     s = time.time()

@@ -1,10 +1,10 @@
 import gymnasium as gym
 import numpy as np
 import random
+import os
 from collections import deque
 from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
-import time
 
 class DQNAgent:
   def __init__(self, learning_rate, gamma, policy, train_max, RB_bool=True, TNN_bool=True, temp=None, epsilon=None):
@@ -18,6 +18,7 @@ class DQNAgent:
     self.epsilon = epsilon
     self.training_counts = 0
     self.train_max = train_max
+    self.weights_updating_frequancy = 100
 
 
     # Enviorment
@@ -31,7 +32,7 @@ class DQNAgent:
     self.nn_Q = self.nn.custom_network()
     self.nn_target = self.nn.custom_network()
 
-    self.batch_size = 32  # train_max # Size of batch taken from replay buffer
+    self.batch_size = 128  # train_max # Size of batch taken from replay buffer
     self.num_episodes = 10000
     # self.max_steps_per_episode = 200
     # self.max_episodes = 10
@@ -39,7 +40,17 @@ class DQNAgent:
     # Replay buffer stroing (state, action, reward, next_state, done) as doubly ended queue
     self.replay_buffer = deque(maxlen=2000)
 
-  
+  def save_log(self, log):
+    path = "Logs/"
+    file_name = "log.txt"
+    if not os.path.exists(path):
+      os.makedirs(path)
+    try:
+      with open(path+file_name, "a") as myfile:
+        myfile.write(log)
+    except:
+        print("Unable to save to files.")
+
   def remeber(self, state, action, reward, next_state, done):
     self.replay_buffer.append((state, action, reward, next_state, done))
   
@@ -62,16 +73,13 @@ class DQNAgent:
         
     return a
   
-  def plot_perf():
-    pass
-  
   def sample_from_replay_memory(self):
     return random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
   
   def train(self):
     self.training_counts += 1
 
-    if self.TNN_bool:
+    if self.TNN_bool and self.training_counts%self.weights_updating_frequancy:
       self.nn_target.set_weights(self.nn_Q.get_weights())
 
     batch_sample = self.sample_from_replay_memory()
@@ -142,51 +150,17 @@ class DQNAgent:
       scores.append(score) 
       loss_avg.append(np.mean(loss))
 
-      print("Episode: {}, Total reward: {}, Total step: {}".format(e, score, steps[-1]))
+      log = "Episode: {}/{}, Total reward: {}, Total step: {} Parameters: epsilon={}, lr={}".format(e, 
+                                                                                     self.num_episodes, 
+                                                                                     score, 
+                                                                                     steps[-1],
+                                                                                     self.epsilon,
+                                                                                     self.learning_rate)
+      self.save_log(log)
+      print(log)
     
     print('Scores: ', scores)
     print('Steps: ', steps)
     return loss_avg, steps
 
 
-
-
-# def train(policy='egreedy',  exploration_factor=1, learning_rate=0.9):
-
-#   # initialize environment, replay buffer, network & target network
-#   agent = DQNAgent(learning_rate, exploration_factor, policy)
-#   observation, info = agent.env.reset()
-#   state = np.array(observation)
-
-#   agent.initialize_replay_memory()
-#   agent.initialize_Qnetwork()
-#   agent.initialize_Qtnetwork()
-
-#   # initial values
-#   convergence = False
-#   episode_reward =0
-
-#   while convergence is False:
-#     # select next action
-#     action = agent.select_action(state)
-
-#     # evaluate next state & reward
-#     observation, reward, done, trunc = agent.execute_action(action)
-#     next_state = np.array(observation)
-#     episode_reward += reward
-
-#     # update replay buffer
-#     agent.store_to_replay_memory(action, state, next_state, reward, done)
-#     state = next_state
-
-#     # sample a batch from replay buffer (once there are enough entries for batch)
-#     if len(agent.done_history) > agent.batch_size:
-#       agent.sample_from_replay_memory()
-#     agent.something_target_network()
-#     agent.gradient_descent_Qnetwork()
-
-
-#   agent.env.close()
-#   return
-
-# train()

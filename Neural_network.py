@@ -1,7 +1,9 @@
 import keras
 from keras import layers
 from tensorflow.keras.optimizers import Adam
+from keras import backend as K
 import sys
+
 class DeepNeuralNetwork():
     def __init__(self, input_size, output_size, learning_rate, num_layers=1, neurons_per_layer=[32]):
         self.lr = learning_rate
@@ -9,6 +11,11 @@ class DeepNeuralNetwork():
         self.output_size = output_size
         self.n_layers = num_layers
         self.neurons_per_layer = neurons_per_layer          
+
+    # def GPU_check(self):
+    #     print(K.tensorflow_backend._get_available_gpus())
+    #     if K.tensorflow_backend._get_available_gpus():
+            # print("Running on GPU.")
         
     def custom_network(self):
         if len(self.neurons_per_layer) != self.n_layers:
