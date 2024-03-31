@@ -7,7 +7,7 @@ from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
 
 class DQNAgent:
-  def __init__(self, learning_rate, gamma, policy, train_max, RB_bool=True, TNN_bool=True, temp=None, epsilon=None):
+  def __init__(self, learning_rate, gamma, policy, train_max, RB_bool=True, TNN_bool=True, temp=None, epsilon=None, nlp=[128,128,128]):
     # Parameters
     self.learning_rate = learning_rate
     self.gamma = gamma
@@ -28,12 +28,12 @@ class DQNAgent:
 
 
     # Q and target nural network
-    self.nn = DeepNeuralNetwork(self.n_states, self.n_actions, self.learning_rate)
+    self.nn = DeepNeuralNetwork(self.n_states, self.n_actions, self.learning_rate, len(nlp), nlp)
     self.nn_Q = self.nn.custom_network()
     self.nn_target = self.nn.custom_network()
 
-    self.batch_size = 128  # train_max # Size of batch taken from replay buffer
-    self.num_episodes = 10000
+    self.batch_size = train_max   # Size of batch taken from replay buffer
+    self.num_episodes = 1000
     # self.max_steps_per_episode = 200
     # self.max_episodes = 10
 
@@ -79,9 +79,6 @@ class DQNAgent:
   def train(self):
     self.training_counts += 1
 
-    if self.TNN_bool and self.training_counts%self.weights_updating_frequancy == 0:
-      self.nn_target.set_weights(self.nn_Q.get_weights())
-
     batch_sample = self.sample_from_replay_memory()
     state_b = np.zeros((self.batch_size, self.n_states))
     next_state_b = np.zeros((self.batch_size, self.n_states))
@@ -111,6 +108,7 @@ class DQNAgent:
     result = self.nn_Q.fit(x=state_b, y=target, batch_size=self.batch_size, verbose=0)
     return result
 
+
   def run(self):
     print("Starting running...")
     loss_avg, scores, steps = [], [], []
@@ -126,26 +124,27 @@ class DQNAgent:
         next_state, reward, done, info, _ = self.env.step(action)
         next_state = np.array(next_state).reshape(1, self.n_states)
         
-        if not done or i == self.env._max_episode_steps-1:
-          reward = reward
-        else:
-          reward = -reward # punishment for failure
+        # if not done or i == self.env._max_episode_steps-1:
+        #   reward = reward
+        # else:
+        #   reward = -reward # punishment for failure
+
+        i+=1
 
         if self.RB_bool:
           self.remeber(state, action, reward, next_state, done)
 
-        state = next_state
-        score += reward
-        i+=1
-
-        if len(self.replay_buffer) >= self.train_max:
+        if len(self.replay_buffer) >= self.batch_size:
           result = self.train()
           loss.append(result.history['loss'])
 
-        if done:
-          steps.append(i)
-          break
-      
+        if self.TNN_bool and self.training_counts%self.weights_updating_frequancy == 0:
+          self.nn_target.set_weights(self.nn_Q.get_weights())
+
+        state = next_state
+        score += reward
+        steps.append(i)
+
       scores.append(score) 
       loss_avg.append(np.mean(loss))
 

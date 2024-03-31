@@ -5,7 +5,7 @@ from keras import backend as K
 import sys
 
 class DeepNeuralNetwork():
-    def __init__(self, input_size, output_size, learning_rate, num_layers=1, neurons_per_layer=[32]):
+    def __init__(self, input_size, output_size, learning_rate, num_layers, neurons_per_layer):
         self.lr = learning_rate
         self.input_size = input_size
         self.output_size = output_size
@@ -24,11 +24,11 @@ class DeepNeuralNetwork():
             return
         
         model = keras.Sequential()
-        model.add(layers.Dense(16, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size, name='L0'))
+        model.add(layers.Dense(16, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size))
         
         for l in range(self.n_layers):
             for npl in self.neurons_per_layer:
-                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', name='L'+str(l+1)))
+                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform'))
                    
                    
         model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))

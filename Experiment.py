@@ -9,11 +9,12 @@ def plot_perf(loss_avg, stepst):
     pass
 
 def main():
-    lr = 0.0001
-    gamma = 0.95
+    lr = 0.001
+    gamma = 0.99
     policy = 'egreedy'
     epsilon = 0.1
-    train_max = 128 # batch-size
+    train_max = 64 # batch-size
+    nlp = [16,16]
     
     print("Starting running...")
     s = time.time()
@@ -21,7 +22,8 @@ def main():
                      gamma=gamma,
                      policy=policy,
                      train_max=train_max,
-                     epsilon=epsilon)
+                     epsilon=epsilon,
+                     nlp=nlp)
     
     loss_avg, steps = agent.run()
     plot_perf(loss_avg, steps)
