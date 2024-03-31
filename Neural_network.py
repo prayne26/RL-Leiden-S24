@@ -1,6 +1,6 @@
 import keras
 from keras import layers
-from tensorflow.keras.optimizers import Adam
+from keras.optimizers import Adam
 from keras import backend as K
 import sys
 
@@ -20,18 +20,14 @@ class DeepNeuralNetwork():
     def custom_network(self):
         if len(self.neurons_per_layer) != self.n_layers:
             print("Wrong number! More/less elements in the list neurons_per_layer then the layers number.")
-            sys.exit() 
-            return
-        
+            sys.exit()
         model = keras.Sequential()
-        model.add(layers.Dense(16, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size))
-        
+        model.add(layers.Input(shape=(self.input_size,)))
         for l in range(self.n_layers):
-            for npl in self.neurons_per_layer:
-                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform'))
+            model.add(layers.Dense(self.neurons_per_layer[l], activation='relu', kernel_initializer='he_uniform'))
                    
                    
         model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))
-              
-        model.compile(loss='mse', optimizer=Adam(lr=self.lr), metrics=['accuracy', 'mse'])
+        model.compile(loss='mse', optimizer=Adam(learning_rate=self.lr), metrics=['accuracy', 'mse'])
+        model.summary()
         return model

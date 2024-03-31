@@ -19,3 +19,4 @@ https://github.com/openai/baselines/blob/master/baselines/deepq/README.md
 *Helper.py* contains useful functions for use throughout the other files.
 
 *Neural_network.py* contains the DeepNeuralNetwork class. Runs the fully connected convolutional network.
+    

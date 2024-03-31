@@ -7,14 +7,13 @@ def main():
     gamma = 0.95
     policy = 'egreedy'
     epsilon = 0.1
-    train_max = 128 # batch-size
-    
-    print("Starting running...")
+    batch_size = 32 # batch-size
+
     s = time.time()
     agent = DQNAgent(learning_rate=lr,
                      gamma=gamma,
                      policy=policy,
-                     train_max=train_max,
+                     batch_size=batch_size,
                      epsilon=epsilon)
     
     agent.run()
