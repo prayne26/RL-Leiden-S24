@@ -65,7 +65,7 @@ class DQNAgent:
             target = reward
             if not done:
                 target = (reward + np.multiply(self.gamma, np.amax(self.model_T.predict(next_state)[0])))
-            target_f = self.model_Q.predict(state)
+            target_f = self.model_Q.predict(state,  verbose=0)
             target_f[0][action] = target
             self.model_Q.fit(state, target_f, epochs=1, verbose=0)
         
@@ -86,6 +86,8 @@ class DQNAgent:
       if not os.path.exists(path):
         os.makedirs(path)
       try:
+        with open(path+file_name, "w") as myfile:
+          myfile.write("")
         with open(path+file_name, "a") as myfile:
           myfile.write(log)
       except:

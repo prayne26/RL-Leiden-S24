@@ -9,16 +9,16 @@ def plot_perf(loss_avg, stepst):
     pass
 
 def main():
-    learning_rate = 0.001
-    gamma = 0.95, 
+    learning_rate = 0.0001
+    gamma = 0.98, 
 
     policy = 'egreedy'
     epsilon = 1.0
-    state_size = 4  # This is for CartPole-v1, adjust according to your environment
-    action_size = 2  # This is for CartPole-v1, adjust according to your environment
-    batch_size = 32  # Typically chosen between 32 and 64
-    npl = [24, 24]
-    # npl = [128,128,128]
+    state_size = 4  
+    action_size = 2  
+    batch_size = 32 
+    # npl = [24, 24]
+    npl = [128,128,128]
 
     
     print("Starting running...")
