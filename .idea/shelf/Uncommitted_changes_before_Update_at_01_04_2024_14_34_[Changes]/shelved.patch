@@ -1,0 +1,420 @@
+Index: Agent.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import gymnasium as gym\r\nimport numpy as np\r\nimport os\r\nimport random\r\nfrom collections import deque\r\nfrom Helper import argmax, softmax\r\nfrom Neural_network import DeepNeuralNetwork\r\n\r\nclass DQNAgent:\r\n    def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, npl, max_episodes, solved=False):\r\n        '''npl - nurons per layer,, it will be a list with the numbers of nurons in the layers []'''\r\n        self.n_state = state_size\r\n        self.n_actions = action_size\r\n        self.replay_buffer = deque(maxlen=2000)\r\n\r\n        self.policy = policy\r\n        self.gamma = gamma    # discount rate\r\n        self.epsilon = epsilon   # exploration rate\r\n        self.learning_rate = learning_rate\r\n        self.batch_size = batch_size\r\n\r\n        self.epsilon_min = 0.01\r\n        self.epsilon_decay = 0.995\r\n\r\n        nn = DeepNeuralNetwork(state_size, action_size, learning_rate, len(npl), npl)\r\n        self.model_Q = nn.custom_network() # main neural network\r\n        self.model_T = nn.custom_network()# target neural network\r\n        self.update_target_model()\r\n\r\n        self.max_episodes = max_episodes\r\n        self.max_steps = 500 # the envirment limit\r\n        self.weights_updating_frequancy = 10\r\n\r\n    def update_target_model(self):\r\n        # Copy weights from the main model to target_model\r\n        self.model_T.set_weights(self.model_Q.get_weights())\r\n\r\n    def remember(self, state, action, reward, next_state, done):\r\n        self.replay_buffer.append((state, action, reward, next_state, done))\r\n\r\n    def act(self, state):\r\n      if self.policy == 'egreedy':\r\n        if self.epsilon is None:\r\n          raise KeyError(\"Provide an epsilon\")\r\n              \r\n        p = np.random.random()\r\n        if p <= self.epsilon:\r\n          a = np.random.randint(0, self.n_actions)\r\n        else:\r\n          a = argmax(self.model_Q.predict(state))\r\n                          \r\n      elif self.policy == 'softmax':\r\n        if self.temp is None:\r\n            raise KeyError(\"Provide a temperature\")\r\n    \r\n        a = np.random.choice(range(self.n_actions), 1, p=softmax(self.model_Q.predict(state), self.temp))[0]\r\n        \r\n      return a\r\n    \r\n    def sample_from_replay_memory(self):\r\n      return random.sample(self.replay_buffer, self.batch_size)\r\n\r\n    def replay(self):\r\n        minibatch = self.sample_from_replay_memory()\r\n        loss = 0\r\n        for state, action, reward, next_state, done in minibatch:\r\n            target = reward\r\n            if not done:\r\n                target = (reward + np.multiply(self.gamma, np.amax(self.model_T.predict(next_state)[0])))\r\n            target_f = self.model_Q.predict(state)\r\n            target_f[0][action] = target\r\n\r\n            loss += self.model_Q.fit(state, target_f, epochs=1, verbose=0).history['loss'][0]\r\n        \r\n        # if self.epsilon > self.epsilon_min:\r\n        #     self.epsilon *= self.epsilon_decay\r\n        return np.mean(loss)\r\n    def load(self, name):\r\n        self.model_Q.load_weights(name)\r\n\r\n    def save(self, name):\r\n        self.model_Q.save_weights(name)\r\n\r\n    def clear_log(self):\r\n      path = \"Logs/\"\r\n      file_name = \"log.txt\"\r\n      if not os.path.exists(path):\r\n        os.makedirs(path)\r\n      try:\r\n        with open(path+file_name, \"w\") as myfile:\r\n          myfile.write(\"\")\r\n      except:\r\n          print(\"Unable to clear the file.\")\r\n       \r\n    def save_log(self, log):\r\n      path = \"Logs/\"\r\n      file_name = \"log.txt\"\r\n      if not os.path.exists(path):\r\n        os.makedirs(path)\r\n      try:\r\n        with open(path+file_name, \"a\") as myfile:\r\n          myfile.write(log)\r\n      except:\r\n          print(\"Unable to save the file.\")\r\n\r\n    def run(self):\r\n        print(\"Starting running...\")\r\n        self.clear_log()\r\n        env = gym.make('CartPole-v1')\r\n        scores = deque(maxlen=100)\r\n        loss_avg, tot_rewards = [], []\r\n        for e in range(self.max_episodes):  # we may try diffrent criterion for stopping\r\n            loss = []\r\n            rewards = 0\r\n            state, _ = env.reset()\r\n            state = np.reshape(state, [1, self.n_state])\r\n            for step in range(self.max_steps):  # CartPole-v1 enforced max step\r\n                action = self.act(state)\r\n                next_state, reward, done, info, _ = env.step(action)\r\n                next_state = np.reshape(next_state, [1, self.n_state])\r\n\r\n                rewards += reward\r\n\r\n                self.remember(state, action, reward, next_state, done)\r\n                state = next_state\r\n\r\n                if done:\r\n                  log = \"Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\\n\".format(e, \r\n                                                                                                                     self.max_episodes, \r\n                                                                                                                     rewards, \r\n                                                                                                                     step,\r\n                                                                                                                     self.epsilon,\r\n                                                                                                                     self.learning_rate)\r\n                  self.save_log(log)\r\n                  print(log)\r\n                  tot_rewards.append(rewards) \r\n                  break\r\n                \r\n               \r\n            \r\n            scores.append(step)\r\n            if len(scores) == 100 and np.mean(scores) >= 200.0 and self.solved:\r\n                print(f\"Solved after {e} episodes!\")\r\n                break\r\n            \r\n            if len(self.replay_buffer) > self.batch_size:\r\n              loss = self.replay()\r\n              loss_avg.append(loss)\r\n            \r\n            if step % self.weights_updating_frequancy == 0:\r\n              self.update_target_model()\r\n\r\n        env.close()\r\n\r\n        print('Scores: ', scores)\r\n        print('Total rewards: ', tot_rewards)\r\n        print('Loss: ', loss_avg)\r\n\r\n        return loss_avg, tot_rewards \r\n\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Agent.py b/Agent.py
+--- a/Agent.py	(revision f4e749c1c77a4039aaaa64d9d625a80d5d7a31e0)
++++ b/Agent.py	(date 1711973451782)
+@@ -30,6 +30,7 @@
+         self.max_episodes = max_episodes
+         self.max_steps = 500 # the envirment limit
+         self.weights_updating_frequancy = 10
++        self.training_count = 0
+ 
+     def update_target_model(self):
+         # Copy weights from the main model to target_model
+@@ -47,13 +48,13 @@
+         if p <= self.epsilon:
+           a = np.random.randint(0, self.n_actions)
+         else:
+-          a = argmax(self.model_Q.predict(state))
++          a = argmax(self.model_Q.predict(state, verbose=0))
+                           
+       elif self.policy == 'softmax':
+         if self.temp is None:
+             raise KeyError("Provide a temperature")
+     
+-        a = np.random.choice(range(self.n_actions), 1, p=softmax(self.model_Q.predict(state), self.temp))[0]
++        a = np.random.choice(range(self.n_actions), 1, p=softmax(self.model_Q.predict(state, verbose=0), self.temp))[0]
+         
+       return a
+     
+@@ -63,11 +64,12 @@
+     def replay(self):
+         minibatch = self.sample_from_replay_memory()
+         loss = 0
++        self.training_count += 1
+         for state, action, reward, next_state, done in minibatch:
+             target = reward
+             if not done:
+-                target = (reward + np.multiply(self.gamma, np.amax(self.model_T.predict(next_state)[0])))
+-            target_f = self.model_Q.predict(state)
++                target = (reward + np.multiply(self.gamma, np.amax(self.model_T.predict(next_state, verbose=0)[0])))
++            target_f = self.model_Q.predict(state,verbose=0)
+             target_f[0][action] = target
+ 
+             loss += self.model_Q.fit(state, target_f, epochs=1, verbose=0).history['loss'][0]
+@@ -92,9 +94,12 @@
+       except:
+           print("Unable to clear the file.")
+        
+-    def save_log(self, log):
++    def save_log(self, log, id):
+       path = "Logs/"
+-      file_name = "log.txt"
++      if id is not None:
++        file_name = "log"+id+".txt"
++      else:
++          file_name = 'log.txt'
+       if not os.path.exists(path):
+         os.makedirs(path)
+       try:
+@@ -131,7 +136,8 @@
+                                                                                                                      step,
+                                                                                                                      self.epsilon,
+                                                                                                                      self.learning_rate)
+-                  self.save_log(log)
++                  selfid = str(e)+str(self.learning_rate)
++                  self.save_log(log,id=None)
+                   print(log)
+                   tot_rewards.append(rewards) 
+                   break
+Index: Neural_network.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import keras\r\nfrom keras import layers\r\nfrom tensorflow.keras.optimizers import Adam\r\nfrom keras import backend as K\r\nimport sys\r\n\r\nclass DeepNeuralNetwork():\r\n    def __init__(self, input_size, output_size, learning_rate, num_layers, neurons_per_layer):\r\n        self.lr = learning_rate\r\n        self.input_size = input_size\r\n        self.output_size = output_size\r\n        self.n_layers = num_layers\r\n        self.neurons_per_layer = neurons_per_layer  # npl       \r\n\r\n    # def GPU_check(self):\r\n    #     print(K.tensorflow_backend._get_available_gpus())\r\n    #     if K.tensorflow_backend._get_available_gpus():\r\n            # print(\"Running on GPU.\")\r\n        \r\n    def custom_network(self):\r\n        if len(self.neurons_per_layer) != self.n_layers:\r\n            print(\"Wrong number! More/less elements in the list neurons_per_layer then the layers number.\")\r\n            sys.exit() \r\n            return\r\n        \r\n        model = keras.Sequential()       \r\n        for l,npl in zip(range(self.n_layers), self.neurons_per_layer):\r\n            if  l == 0:\r\n                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size, name=\"L\"+str(l)))\r\n            else:\r\n                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', name=\"L\"+str(l)))\r\n                        \r\n        model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))\r\n              \r\n        model.compile(loss='mse', optimizer=Adam(lr=self.lr), metrics=['accuracy', 'mse'])\r\n        return model
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Neural_network.py b/Neural_network.py
+--- a/Neural_network.py	(revision f4e749c1c77a4039aaaa64d9d625a80d5d7a31e0)
++++ b/Neural_network.py	(date 1711961996403)
+@@ -32,5 +32,5 @@
+                         
+         model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))
+               
+-        model.compile(loss='mse', optimizer=Adam(lr=self.lr), metrics=['accuracy', 'mse'])
++        model.compile(loss='mse', optimizer=Adam(learning_rate=self.lr), metrics=['accuracy', 'mse'])
+         return model
+\ No newline at end of file
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#  Here we can just play one of the modefrom\r\nfrom Agent import DQNAgent\r\nimport time\r\n\r\ndef main():\r\n    max_episodes = 10000\r\n    npl = [32,32]\r\n    solved=True\r\n    \r\n    learning_rate = 0.001\r\n    gamma = 0.95, \r\n\r\n    policy = 'egreedy'\r\n    epsilon = 0.5\r\n    state_size = 4  \r\n    action_size = 2  \r\n    batch_size = 32 \r\n\r\n    s = time.time()\r\n    \r\n    agent = DQNAgent(state_size=state_size,\r\n                        action_size=action_size,\r\n                        learning_rate=learning_rate,\r\n                        gamma=gamma,\r\n                        policy=policy,\r\n                        batch_size=batch_size,\r\n                        epsilon=epsilon,\r\n                        npl=npl,\r\n                        max_episodes=max_episodes)\r\n    \r\n    loss_avg, tot_rewards = agent.run()\r\n    \r\n    print(\"Program finished. Total time: {} seconds.\".format(round(time.time()-s,2)))\r\n\r\nif __name__ == '__main__':\r\n    main()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	(revision f4e749c1c77a4039aaaa64d9d625a80d5d7a31e0)
++++ b/main.py	(date 1711971453526)
+@@ -3,34 +3,36 @@
+ import time
+ 
+ def main():
+-    max_episodes = 10000
+-    npl = [32,32]
+-    solved=True
+-    
++    max_episodes = 500
++    npl = [32, 32]
++    solved = True
++
+     learning_rate = 0.001
+-    gamma = 0.95, 
++    for learning_rate in [0.00001,0.0001,0.001,0.01,0.1]:
++        learning_rate = learning_rate
++        gamma = 0.95,
+ 
+-    policy = 'egreedy'
+-    epsilon = 0.5
+-    state_size = 4  
+-    action_size = 2  
+-    batch_size = 32 
++        policy = 'egreedy'
++        epsilon = 0.5
++        state_size = 4
++        action_size = 2
++        batch_size = 32
+ 
+-    s = time.time()
+-    
+-    agent = DQNAgent(state_size=state_size,
+-                        action_size=action_size,
+-                        learning_rate=learning_rate,
+-                        gamma=gamma,
+-                        policy=policy,
+-                        batch_size=batch_size,
+-                        epsilon=epsilon,
+-                        npl=npl,
+-                        max_episodes=max_episodes)
+-    
+-    loss_avg, tot_rewards = agent.run()
+-    
+-    print("Program finished. Total time: {} seconds.".format(round(time.time()-s,2)))
++        s = time.time()
++
++        agent = DQNAgent(state_size=state_size,
++                         action_size=action_size,
++                         learning_rate=learning_rate,
++                         gamma=gamma,
++                         policy=policy,
++                         batch_size=batch_size,
++                         epsilon=epsilon,
++                         npl=npl,
++                         max_episodes=max_episodes)
++
++        loss_avg, tot_rewards = agent.run()
++
++        print("Program finished lr {}. Total time: {} seconds.".format(learning_rate, round(time.time() - s, 2)))
+ 
+ if __name__ == '__main__':
+     main()
+\ No newline at end of file
+Index: Logs/log.txt
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>Episode: 0/201, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 1/201, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 2/201, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 3/201, Total reward: 32.0, Total steps: 31, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 4/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 5/201, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 6/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 7/201, Total reward: 23.0, Total steps: 22, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 8/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 9/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 10/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 11/201, Total reward: 49.0, Total steps: 48, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 12/201, Total reward: 37.0, Total steps: 36, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 13/201, Total reward: 24.0, Total steps: 23, Parameters: epsilon=0.9, lr=0.001.\r\nEpisode: 14/201, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.9, lr=0.001.\r\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/Logs/log.txt b/Logs/log.txt
+--- a/Logs/log.txt	(revision f4e749c1c77a4039aaaa64d9d625a80d5d7a31e0)
++++ b/Logs/log.txt	(date 1711974753505)
+@@ -1,15 +1,213 @@
+-Episode: 0/201, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 1/201, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 2/201, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 3/201, Total reward: 32.0, Total steps: 31, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 4/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 5/201, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 6/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 7/201, Total reward: 23.0, Total steps: 22, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 8/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 9/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 10/201, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 11/201, Total reward: 49.0, Total steps: 48, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 12/201, Total reward: 37.0, Total steps: 36, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 13/201, Total reward: 24.0, Total steps: 23, Parameters: epsilon=0.9, lr=0.001.
+-Episode: 14/201, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.9, lr=0.001.
++Episode: 0/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 1/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 2/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 3/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 4/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 5/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 6/500, Total reward: 22.0, Total steps: 21, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 7/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 8/500, Total reward: 22.0, Total steps: 21, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 9/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 10/500, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 11/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 12/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 13/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 14/500, Total reward: 34.0, Total steps: 33, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 15/500, Total reward: 29.0, Total steps: 28, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 16/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 17/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 18/500, Total reward: 22.0, Total steps: 21, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 19/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 20/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 21/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 22/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 23/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 24/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 25/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 26/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 27/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 28/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 29/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 30/500, Total reward: 19.0, Total steps: 18, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 31/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 32/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 33/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 34/500, Total reward: 22.0, Total steps: 21, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 35/500, Total reward: 19.0, Total steps: 18, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 36/500, Total reward: 27.0, Total steps: 26, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 37/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 38/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 39/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 40/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 41/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 42/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 43/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 44/500, Total reward: 8.0, Total steps: 7, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 45/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 46/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 47/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 48/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 49/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 50/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 51/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 52/500, Total reward: 93.0, Total steps: 92, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 53/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 54/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 55/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 56/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 57/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 58/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 59/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 60/500, Total reward: 19.0, Total steps: 18, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 61/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 62/500, Total reward: 18.0, Total steps: 17, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 63/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 64/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 65/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 66/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 67/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 68/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 69/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 70/500, Total reward: 40.0, Total steps: 39, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 71/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 72/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 73/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 74/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 75/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 76/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 77/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 78/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 79/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 80/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 81/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 82/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 83/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 84/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 85/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 86/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 87/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 88/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 89/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 90/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 91/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 92/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 93/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 94/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 95/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 96/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 97/500, Total reward: 19.0, Total steps: 18, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 98/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 99/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 100/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 101/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 102/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 103/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 104/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 105/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 106/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 107/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 108/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 109/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 110/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 111/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 112/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 113/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 114/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 115/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 116/500, Total reward: 18.0, Total steps: 17, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 117/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 118/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 119/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 120/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 121/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 122/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 123/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 124/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 125/500, Total reward: 18.0, Total steps: 17, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 126/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 127/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 128/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 129/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 130/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 131/500, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 132/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 133/500, Total reward: 19.0, Total steps: 18, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 134/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 135/500, Total reward: 8.0, Total steps: 7, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 136/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 137/500, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 138/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 139/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 140/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 141/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 142/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 143/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 144/500, Total reward: 22.0, Total steps: 21, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 145/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 146/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 147/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 148/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 149/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 150/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 151/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 152/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 153/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 154/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 155/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 156/500, Total reward: 18.0, Total steps: 17, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 157/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 158/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 159/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 160/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 161/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 162/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 163/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 164/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 165/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 166/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 167/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 168/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 169/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 170/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 171/500, Total reward: 17.0, Total steps: 16, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 172/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 173/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 174/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 175/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 176/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 177/500, Total reward: 47.0, Total steps: 46, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 178/500, Total reward: 30.0, Total steps: 29, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 179/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 180/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 181/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 182/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 183/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 184/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 185/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 186/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 187/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 188/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 189/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 190/500, Total reward: 16.0, Total steps: 15, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 191/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 192/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 193/500, Total reward: 10.0, Total steps: 9, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 194/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 195/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 196/500, Total reward: 25.0, Total steps: 24, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 197/500, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 198/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 199/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 200/500, Total reward: 24.0, Total steps: 23, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 201/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 202/500, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 203/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 204/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 205/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 206/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 207/500, Total reward: 14.0, Total steps: 13, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 208/500, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 209/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 210/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 211/500, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=1e-05.
++Episode: 212/500, Total reward: 15.0, Total steps: 14, Parameters: epsilon=0.5, lr=1e-05.
+Index: .idea/codeStyles/codeStyleConfig.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/codeStyles/codeStyleConfig.xml b/.idea/codeStyles/codeStyleConfig.xml
+new file mode 100644
+--- /dev/null	(date 1711961354709)
++++ b/.idea/codeStyles/codeStyleConfig.xml	(date 1711961354709)
+@@ -0,0 +1,5 @@
++<component name="ProjectCodeStyleConfiguration">
++  <state>
++    <option name="PREFERRED_PROJECT_CODE_STYLE" value="Default" />
++  </state>
++</component>
+\ No newline at end of file

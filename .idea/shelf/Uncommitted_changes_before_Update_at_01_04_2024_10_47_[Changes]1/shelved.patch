@@ -1,0 +1,34 @@
+Index: main.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>#  Here we can just play one of the modefrom\r\nfrom Agent import DQNAgent\r\nimport time\r\n\r\ndef main():\r\n    lr = 0.0001\r\n    gamma = 0.95\r\n    policy = 'egreedy'\r\n    epsilon = 0.1\r\n    train_max = 128 # batch-size\r\n    \r\n    print(\"Starting running...\")\r\n    s = time.time()\r\n    agent = DQNAgent(learning_rate=lr,\r\n                     gamma=gamma,\r\n                     policy=policy,\r\n                     train_max=train_max,\r\n                     epsilon=epsilon)\r\n    \r\n    agent.run()\r\n\r\n    print(\"Program finished. Total time: {} seconds.\".format(time.time()-s))\r\n\r\nif __name__ == '__main__':\r\n    main()
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/main.py b/main.py
+--- a/main.py	
++++ b/main.py	
+@@ -14,7 +14,6 @@
+     agent = DQNAgent(learning_rate=lr,
+                      gamma=gamma,
+                      policy=policy,
+-                     train_max=train_max,
+                      epsilon=epsilon)
+     
+     agent.run()
+Index: .idea/codeStyles/codeStyleConfig.xml
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/.idea/codeStyles/codeStyleConfig.xml b/.idea/codeStyles/codeStyleConfig.xml
+new file mode 100644
+--- /dev/null	
++++ b/.idea/codeStyles/codeStyleConfig.xml	
+@@ -0,0 +1,5 @@
++<component name="ProjectCodeStyleConfiguration">
++  <state>
++    <option name="PREFERRED_PROJECT_CODE_STYLE" value="Default" />
++  </state>
++</component>
+\ No newline at end of file

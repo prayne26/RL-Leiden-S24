@@ -24,7 +24,8 @@ class DQNAgent:
         self.tau = 0.1  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
 
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.995
+        self.epsilon_decay = 0.99
+        self.train_start = 1000
 
         nn = DeepNeuralNetwork(state_size, action_size, learning_rate, len(npl), npl)
         self.model_Q = nn.custom_network()  # main neural network
@@ -143,33 +144,37 @@ class DQNAgent:
             state, _ = env.reset()
             state = np.reshape(state, [1, self.n_state])
             self.epsilon = self.initial_epsilon
+
             for step in range(self.max_steps):  # CartPole-v1 enforced max step
                 action = self.act(state)
                 next_state, reward, done, info, _ = env.step(action)
                 next_state = np.reshape(next_state, [1, self.n_state])
 
                 rewards += reward
+                #lower final reward if terminated
+                reward = reward if not done else -100
 
                 self.remember(state, action, reward, next_state, done)
 
-                self.replay()
-
-                state = next_state
-
+                if len(self.replay_buffer) > self.train_start:
+                    self.replay()
+                    if done:
+                        log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(
+                            e + 1,
+                            self.max_episodes,
+                            rewards,
+                            step,
+                            self.epsilon,
+                            self.learning_rate)
+                        print(log)
+                        self.save_log(log)
+                        scores.append(step)
+                        if self.tau is not None:
+                            self.update_target_model(self.tau)
+                        break
                 if done:
-                    log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(
-                        e + 1,
-                        self.max_episodes,
-                        rewards,
-                        step,
-                        self.epsilon,
-                        self.learning_rate)
-                    print(log)
-                    self.save_log(log)
-                    scores.append(step)
-                    if self.tau is not None:
-                        self.update_target_model(self.tau)
                     break
+                state = next_state
 
             if self.tau is None:
                 if self.total_step_count % self.weights_updating_frequency == 0:

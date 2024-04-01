@@ -24,8 +24,12 @@ def play_cartgame():
     play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=5)
 
 #play_cartgame()
+import numpy as np
 env = gym.make("CartPole-v1")
-size1 = 4
-size2 = env.observation_space.shape[0]
-print(size2)
-print(type(size2))
+
+reward, done = 1, False
+reward = reward if not done else -100
+print(reward)
+reward, done = 1, True
+reward = reward if not done else -100
+print(reward)

@@ -23,17 +23,17 @@ def make_plot(perf, max_episodes, file_name, title):
     plt.show()
 
 def experiment():
-    max_episodes = 300
+    max_episodes = 150
     npl = [24,24]
     
     lr = 0.001
     gamma = 0.9,
 
     policy = 'egreedy'
-    epsilon = 0.99
+    epsilon = 1.
     state_size = 4  
     action_size = 2  
-    batch_size = 32 
+    batch_size = 24
 
     agent = DQNAgent(state_size=state_size,
                         action_size=action_size,
@@ -53,7 +53,7 @@ def experiment():
 
 
 def lr_experiment():
-    max_episodes = 300
+    max_episodes = 150
     npl = [24, 24]
 
     learning_rate = 0.001
