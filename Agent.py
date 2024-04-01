@@ -29,7 +29,7 @@ class DQNAgent:
 
         self.max_episodes = max_episodes
         self.max_steps = 500 # the envirment limit
-        self.weights_updating_frequancy = 10
+        self.weights_updating_frequancy = 1
 
     def update_target_model(self):
         # Copy weights from the main model to target_model
@@ -108,9 +108,7 @@ class DQNAgent:
         self.clear_log()
         env = gym.make('CartPole-v1')
         scores = deque(maxlen=100)
-        loss_avg, tot_rewards = [], []
         for e in range(self.max_episodes):  # we may try diffrent criterion for stopping
-            loss = []
             rewards = 0
             state, _ = env.reset()
             state = np.reshape(state, [1, self.n_state])
@@ -125,36 +123,58 @@ class DQNAgent:
                 state = next_state
 
                 if done:
-                  log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
+                  log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e+1, 
                                                                                                                      self.max_episodes, 
                                                                                                                      rewards, 
                                                                                                                      step,
                                                                                                                      self.epsilon,
                                                                                                                      self.learning_rate)
-                  self.save_log(log)
                   print(log)
-                  tot_rewards.append(rewards) 
+                  self.save_log(log)
                   break
                 
-               
-            
             scores.append(step)
             if len(scores) == 100 and np.mean(scores) >= 200.0 and self.solved:
                 print(f"Solved after {e} episodes!")
                 break
             
             if len(self.replay_buffer) > self.batch_size:
-              loss = self.replay()
-              loss_avg.append(loss)
-            
+              self.replay()
+        
             if step % self.weights_updating_frequancy == 0:
               self.update_target_model()
 
         env.close()
 
         print('Scores: ', scores)
-        print('Total rewards: ', tot_rewards)
-        print('Loss: ', loss_avg)
-
-        return loss_avg, tot_rewards 
+  
+    def run_experiment(self):
+      env = gym.make('CartPole-v1')
+      scores = []
+      for e in range(self.max_episodes):
+        state, _ = env.reset()
+        state = np.reshape(state, [1, self.n_state])
+        score = 0
+        for step in range(self.max_steps):
+          action = self.act(state)
+          next_state, reward, done, info, _  = env.step(action)
+          next_state = np.reshape(next_state, [1, self.n_state])
+          
+          self.remember(state, action, reward, next_state, done)
+          
+          state = next_state
+          score += reward
+          if done:
+            break
+        
+        if len(self.replay_buffer) > self.batch_size:
+          self.replay()
+        
+        if step % self.weights_updating_frequancy == 0:
+          self.update_target_model()
+              
+        scores.append(score)
+        print("Episode: {}/{}, Score: {}". format(e+1, self.max_episodes, score))
+      
+      return scores
 
