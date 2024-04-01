@@ -7,7 +7,7 @@ import matplotlib.pyplot as plt
 def make_plot(perf, max_episodes, file_name, title):
     x = np.arange(1, max_episodes+1)
     j=0
-    print(x, perf.values())
+
     plt.figure(figsize=(10, 6))
     for y in perf.values():
         j+=1
@@ -20,10 +20,10 @@ def make_plot(perf, max_episodes, file_name, title):
     plt.legend(prop={'size':10})
     plt.grid(True)
     plt.savefig("Pics/"+file_name)
-    plt.show()
+    # plt.show()
 
 def nn_experiment():
-    max_episodes = 150
+    max_episodes = 200
     npls = [[32], [32,32], [32,32,32]]
     
     learning_rate = 0.001
@@ -36,25 +36,22 @@ def nn_experiment():
     batch_size = 32 
 
     perf = {str(npl):[] for npl in npls}
-    perf_mean = {}
     for npl in npls:
-        # for _ in range(10):
         agent = DQNAgent(state_size=state_size,
-                            action_size=action_size,
-                            learning_rate=learning_rate,
-                            gamma=gamma,
-                            policy=policy,
-                            batch_size=batch_size,
-                            epsilon=epsilon,
-                            npl=npl,
-                            max_episodes=max_episodes)
+                        action_size=action_size,
+                        learning_rate=learning_rate,
+                        gamma=gamma,
+                        policy=policy,
+                        batch_size=batch_size,
+                        epsilon=epsilon,
+                        npl=npl,
+                        max_episodes=max_episodes)
     
         scores = agent.run_experiment()
         perf[str(npl)].append(scores)
-        # perf_mean.append(np.mean(scores))
 
     print("Averges after 10 runns of each config: ")
-    for k, v in zip(perf.keys(), perf_mean):
+    for k, v in zip(perf.keys(), perf.values()):
         print("{} : {}+/-{}".format(k,np.means(v[0]), np.std(v[0])))
 
     title = 'DQN Performance with Different NN architecture'
