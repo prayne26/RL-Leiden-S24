@@ -5,7 +5,6 @@ import random
 from collections import deque
 from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
-from tensorflow.keras import models, layers, optimizers
 
 class DQNAgent:
     def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, npl):
@@ -70,8 +69,10 @@ class DQNAgent:
             target_f[0][action] = target
             self.model_Q.fit(state, target_f, epochs=1, verbose=0)
         
-        if self.epsilon > self.epsilon_min:
-            self.epsilon *= self.epsilon_decay
+      
+
+        # if self.epsilon > self.epsilon_min:
+        #     self.epsilon *= self.epsilon_decay
 
     def load(self, name):
         self.model_Q.load_weights(name)
@@ -109,23 +110,24 @@ class DQNAgent:
 
                 self.remember(state, action, reward, next_state, done)
                 state = next_state
+
                 if done:
-                    log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
-                                                                                     self.max_episodes, 
-                                                                                     score, 
-                                                                                     step,
-                                                                                     self.epsilon,
-                                                                                     self.learning_rate)
-                    self.save_log(log)
-                    print(log)
-                    break
-                
+                  log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(e, 
+                                                                                                                     self.max_episodes, 
+                                                                                                                     score, 
+                                                                                                                     step,
+                                                                                                                     self.epsilon,
+                                                                                                                     self.learning_rate)
+                  self.save_log(log)
+                  print(log)
+                  break
+                scores.append(score) 
+                loss_avg.append(np.mean(loss))
             # scores.append(step)
             # if len(scores) == 100 and np.mean(scores) >= 195.0:
             #     print(f"Solved after {e} episodes!")
             #     break
-            scores.append(score) 
-            loss_avg.append(np.mean(loss))
+            
 
             if len(self.replay_buffer) > self.batch_size:
                 self.replay()

@@ -10,7 +10,7 @@ class DeepNeuralNetwork():
         self.input_size = input_size
         self.output_size = output_size
         self.n_layers = num_layers
-        self.neurons_per_layer = neurons_per_layer          
+        self.neurons_per_layer = neurons_per_layer  # npl       
 
     # def GPU_check(self):
     #     print(K.tensorflow_backend._get_available_gpus())
