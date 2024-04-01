@@ -3,23 +3,34 @@ from Agent import DQNAgent
 import time
 
 def main():
-    lr = 0.0001
-    gamma = 0.95
-    policy = 'egreedy'
-    epsilon = 0.1
-    train_max = 128 # batch-size
+    max_episodes = 10000
+    npl = [32,32]
+    solved=True
     
-    print("Starting running...")
-    s = time.time()
-    agent = DQNAgent(learning_rate=lr,
-                     gamma=gamma,
-                     policy=policy,
-                     train_max=train_max,
-                     epsilon=epsilon)
-    
-    agent.run()
+    learning_rate = 0.001
+    gamma = 0.95, 
 
-    print("Program finished. Total time: {} seconds.".format(time.time()-s))
+    policy = 'egreedy'
+    epsilon = 0.5
+    state_size = 4  
+    action_size = 2  
+    batch_size = 32 
+
+    s = time.time()
+    
+    agent = DQNAgent(state_size=state_size,
+                        action_size=action_size,
+                        learning_rate=learning_rate,
+                        gamma=gamma,
+                        policy=policy,
+                        batch_size=batch_size,
+                        epsilon=epsilon,
+                        npl=npl,
+                        max_episodes=max_episodes)
+    
+    loss_avg, tot_rewards = agent.run()
+    
+    print("Program finished. Total time: {} seconds.".format(round(time.time()-s,2)))
 
 if __name__ == '__main__':
     main()

@@ -1,1 +1,6 @@
-Episode: 29/1000, Total reward: 15.0, Total steps: 14, Parameters: epsilon=1.0, lr=0.0001.
+Episode: 0/201, Total reward: 24.0, Total steps: 23, Parameters: epsilon=0.5, lr=0.001.
+Episode: 1/201, Total reward: 12.0, Total steps: 11, Parameters: epsilon=0.5, lr=0.001.
+Episode: 2/201, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.5, lr=0.001.
+Episode: 3/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.5, lr=0.001.
+Episode: 4/201, Total reward: 9.0, Total steps: 8, Parameters: epsilon=0.5, lr=0.001.
+Episode: 5/201, Total reward: 20.0, Total steps: 19, Parameters: epsilon=0.5, lr=0.001.
