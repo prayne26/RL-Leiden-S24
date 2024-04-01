@@ -23,4 +23,9 @@ def play_cartgame():
     mapping = {(pygame.K_LEFT,): 0, (pygame.K_RIGHT,): 1}
     play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=5)
 
-play_cartgame()
+#play_cartgame()
+env = gym.make("CartPole-v1")
+size1 = 4
+size2 = env.observation_space.shape[0]
+print(size2)
+print(type(size2))

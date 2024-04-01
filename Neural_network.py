@@ -32,5 +32,5 @@ class DeepNeuralNetwork():
                         
         model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))
               
-        model.compile(loss='mse', optimizer=Adam(lr=self.lr), metrics=['accuracy', 'mse'])
+        model.compile(loss='mse', optimizer=Adam(learning_rate=self.lr), metrics=['accuracy', 'mse'])
         return model
