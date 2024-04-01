@@ -23,28 +23,8 @@ def make_plots(perf, max_episodes, file_name, title):
     plt.show()
 
 
-def make_plot(scores, file_name, title):
-    x = np.arange(1, len(scores))
-    average100 = []
-    for i in scores:
-        val = max(0, i-100)
-        average = np.mean(scores[val:i+1])
-        average100.append(average)
-    plt.figure(figsize=(10, 6))
-
-    plt.plot(x, average100, label='DQN ' + str(j))
-
-    plt.xlabel('Episodes', fontsize=12)
-    plt.ylabel('Average100 Score', fontsize=12)
-    plt.title(title, fontsize=14)
-
-    plt.legend(prop={'size': 10})
-    plt.grid(True)
-    plt.savefig("Pics/" + file_name)
-    plt.show()
-
 def experiment():
-    max_episodes = 150
+    max_episodes = 300
     npl = [24,24]
     
     lr = 0.001
@@ -71,7 +51,8 @@ def experiment():
     print(f'highest score = {np.max(scores)}')
     for interval_score in np.array_split(scores,10):
         print(f'   interval mean: {np.mean(interval_score)}')
-    make_plot(scores,'1','tau=None')
+    print(scores)
+    #we should plot past 50 or 100 episode average instead of raw
 
 def lr_experiment():
     max_episodes = 150

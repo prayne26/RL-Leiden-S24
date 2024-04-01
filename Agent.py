@@ -21,11 +21,11 @@ class DQNAgent:
         self.initial_epsilon = epsilon #for epsilon reset
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.tau = None  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
+        self.tau = 0.1  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
 
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.99
-        self.train_start = 200
+        self.train_start = 1000
 
         nn = DeepNeuralNetwork(state_size, action_size, learning_rate, len(npl), npl)
         self.model_Q = nn.custom_network()  # main neural network
@@ -75,13 +75,13 @@ class DQNAgent:
 
 
     def replay(self):
-        if len(self.replay_buffer) > self.train_start:
+        if len(self.replay_buffer) < self.train_start:
             return
         batch = random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
         states, targets = [], []
         for state, action, reward, next_state, done in batch:
             target = self.model_Q.predict(state, verbose=0)
-            q_action = np.amax(self.model_Q.predict(next_state, verbose=0)[0])
+            q_action = np.argmax(self.model_Q.predict(next_state, verbose=0)[0])
             next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
             # next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
             target[0][action] = reward
@@ -147,20 +147,18 @@ class DQNAgent:
 
                 #lower final reward if terminated
                 reward = reward if not done else -100
-
                 self.remember(state, action, reward, next_state, done)
-
                 self.replay()
-
                 if done:
                     scores.append(step)
                     if self.tau is not None:
                         self.update_target_model(self.tau)
 
-                    log = "Episode: {}/{}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(
-                        e + 1, self.max_episodes, step, self.epsilon, self.learning_rate)
+                    train = True if len(self.replay_buffer)>self.train_start else False
+                    log = "Episode: {}/{}, Total steps: {}, train:{}, Parameters: epsilon={}, lr={}.\n".format(
+                        e + 1, self.max_episodes, step, train, self.epsilon, self.learning_rate)
                     print(log)
-                    self.save_log(log)
+                    #self.save_log(log)
                     break
                 state = next_state
 
