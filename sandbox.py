@@ -27,9 +27,3 @@ def play_cartgame():
 import numpy as np
 env = gym.make("CartPole-v1")
 
-reward, done = 1, False
-reward = reward if not done else -100
-print(reward)
-reward, done = 1, True
-reward = reward if not done else -100
-print(reward)

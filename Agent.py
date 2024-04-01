@@ -21,11 +21,11 @@ class DQNAgent:
         self.initial_epsilon = epsilon #for epsilon reset
         self.learning_rate = learning_rate
         self.batch_size = batch_size
-        self.tau = 0.1  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
+        self.tau = None  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
 
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.99
-        self.train_start = 1000
+        self.train_start = 200
 
         nn = DeepNeuralNetwork(state_size, action_size, learning_rate, len(npl), npl)
         self.model_Q = nn.custom_network()  # main neural network
@@ -73,38 +73,34 @@ class DQNAgent:
 
         return a
 
-    def sample_from_replay_memory(self):
-        return random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
 
     def replay(self):
-        batch = self.sample_from_replay_memory()
-        loss = 0
+        if len(self.replay_buffer) > self.train_start:
+            return
+        batch = random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
         states, targets = [], []
         for state, action, reward, next_state, done in batch:
             target = self.model_Q.predict(state, verbose=0)
+            q_action = np.amax(self.model_Q.predict(next_state, verbose=0)[0])
+            next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
+            # next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
             target[0][action] = reward
+            if not done:
+                target[0][action] = reward + self.gamma * next_qval
             if self.tau is None:
                 # First method, updating target network every n timesteps by total replacement
-                if not done:
-                    next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
-                    target[0][action] = reward + self.gamma * next_qval
-                # First method, for updating network every step and target at training intervals
-                loss += self.model_Q.fit(state, target, epochs=1, verbose=0).history['loss'][0]
+                self.model_Q.fit(state, target, epochs=1, verbose=0)
                 self.total_step_count += 1
             else:
                 # Second method, updating target network in batches and target every episode
-                if not done:
-                    next_qval = self.model_T.predict(next_state, verbose=0)[0][action]
-                    target[0][action] = reward + self.gamma * next_qval
                 states.append(state[0])
                 targets.append(target[0])
 
         if self.tau is not None:
-            loss = self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0).history['loss'][0]
+            self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
 
         if self.epsilon > self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-        return np.mean(loss)
 
     def load(self, name):
         self.model_Q.load_weights(name)
@@ -140,8 +136,7 @@ class DQNAgent:
         env = gym.make('CartPole-v1')
         scores = deque(maxlen=100)
         for e in range(self.max_episodes):  # we may try diffrent criterion for stopping
-            rewards = 0
-            state, _ = env.reset()
+            state, _ = env.reset(seed=0)
             state = np.reshape(state, [1, self.n_state])
             self.epsilon = self.initial_epsilon
 
@@ -150,29 +145,22 @@ class DQNAgent:
                 next_state, reward, done, info, _ = env.step(action)
                 next_state = np.reshape(next_state, [1, self.n_state])
 
-                rewards += reward
                 #lower final reward if terminated
                 reward = reward if not done else -100
 
                 self.remember(state, action, reward, next_state, done)
 
-                if len(self.replay_buffer) > self.train_start:
-                    self.replay()
-                    if done:
-                        log = "Episode: {}/{}, Total reward: {}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(
-                            e + 1,
-                            self.max_episodes,
-                            rewards,
-                            step,
-                            self.epsilon,
-                            self.learning_rate)
-                        print(log)
-                        self.save_log(log)
-                        scores.append(step)
-                        if self.tau is not None:
-                            self.update_target_model(self.tau)
-                        break
+                self.replay()
+
                 if done:
+                    scores.append(step)
+                    if self.tau is not None:
+                        self.update_target_model(self.tau)
+
+                    log = "Episode: {}/{}, Total steps: {}, Parameters: epsilon={}, lr={}.\n".format(
+                        e + 1, self.max_episodes, step, self.epsilon, self.learning_rate)
+                    print(log)
+                    self.save_log(log)
                     break
                 state = next_state
 

@@ -1,5 +1,4 @@
-Episode: 47/150, Total reward: 11.0, Total steps: 10, Parameters: epsilon=0.9801, lr=0.001.
-Episode: 48/150, Total reward: 27.0, Total steps: 26, Parameters: epsilon=0.7623427143471035, lr=0.001.
-Episode: 49/150, Total reward: 13.0, Total steps: 12, Parameters: epsilon=0.8775210229989678, lr=0.001.
-Episode: 50/150, Total reward: 24.0, Total steps: 23, Parameters: epsilon=0.7856781408072188, lr=0.001.
-Episode: 51/150, Total reward: 30.0, Total steps: 29, Parameters: epsilon=0.7397003733882802, lr=0.001.
+Episode: 1/150, Total steps: 41, Parameters: epsilon=0.6556592205741436, lr=0.001.
+Episode: 2/150, Total steps: 31, Parameters: epsilon=0.7249803359578534, lr=0.001.
+Episode: 3/150, Total steps: 23, Parameters: epsilon=0.7856781408072188, lr=0.001.
+Episode: 4/150, Total steps: 30, Parameters: epsilon=0.7323033696543974, lr=0.001.
