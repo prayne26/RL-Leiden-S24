@@ -22,6 +22,7 @@ def nn_experiment_plot(loss, max_episodes):
     plt.legend(prop={'size': 10})
     plt.savefig("Loss_arch.png")
     plt.show()
+    
 def nn_experiment():
     max_episodes = 201
     npls = [[32], [32,32], [32,32,32]]
@@ -30,7 +31,7 @@ def nn_experiment():
     gamma = 0.95, 
 
     policy = 'egreedy'
-    epsilon = 0.5
+    epsilon = 0.9
     state_size = 4  
     action_size = 2  
     batch_size = 32 
@@ -58,7 +59,7 @@ def nn_experiment():
 def main():
     s = time.time()
     nn_experiment()
-    
+
     print("Program finished. Total time: {} seconds.".format(round(time.time()-s, 2)))
 
 if __name__ == '__main__':
