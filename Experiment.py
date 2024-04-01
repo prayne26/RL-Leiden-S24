@@ -14,7 +14,8 @@ def make_plot(perf, max_episodes, file_name, title):
         plt.plot(x, y[0], label='DQN '+str(j))
 
     plt.xlabel('Episodes', fontsize=12)
-    plt.ylabel('Average Score', fontsize=12)
+    plt.ylabel('Score', fontsize=12)
+    plt.ylim(range(0,  200, 20))
     plt.title(title, fontsize=14)
     
     plt.legend(prop={'size':10})
@@ -38,21 +39,21 @@ def nn_experiment():
     perf = {str(npl):[] for npl in npls}
     for npl in npls:
         agent = DQNAgent(state_size=state_size,
-                        action_size=action_size,
-                        learning_rate=learning_rate,
-                        gamma=gamma,
-                        policy=policy,
-                        batch_size=batch_size,
-                        epsilon=epsilon,
-                        npl=npl,
-                        max_episodes=max_episodes)
+                         action_size=action_size,
+                         learning_rate=learning_rate,
+                         gamma=gamma,
+                         policy=policy,
+                         batch_size=batch_size,
+                         epsilon=epsilon,
+                         npl=npl,
+                         max_episodes=max_episodes)
     
         scores = agent.run_experiment()
         perf[str(npl)].append(scores)
 
     print("Averges after 10 runns of each config: ")
     for k, v in zip(perf.keys(), perf.values()):
-        print("{} : {}+/-{}".format(k,np.means(v[0]), np.std(v[0])))
+        print("{} : {}+/-{}".format(k,np.mean(v[0]), np.std(v[0])))
 
     title = 'DQN Performance with Different NN architecture'
     file_name = 'Layers_perf.png'
