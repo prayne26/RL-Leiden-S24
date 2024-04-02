@@ -24,11 +24,11 @@ def main():
     max_episodes = 10000
     npl = [32,32]
     
-    learning_rate = 0.001
-    gamma = 0.95, 
+    learning_rate = 0.001 # Here should be tuned value
+    gamma = 0.95          # Here should be tuned value
 
     policy = 'egreedy'
-    epsilon = 0.5
+    epsilon = 0.8
     state_size = 4  
     action_size = 2  
     batch_size = 32 

@@ -95,7 +95,7 @@ class DQNAgent:
             raise KeyError('Provide a valid policy')
         return a
 
-    def replay(self):
+    def replay(self, no_tn):
         if len(self.replay_buffer) < self.train_start:
             return
         batch = random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
@@ -103,6 +103,10 @@ class DQNAgent:
         for state, action, reward, next_state, done in batch:
             target = self.model_Q.predict(state, verbose=0)
             q_action = np.argmax(self.model_Q.predict(next_state, verbose=0)[0])
+
+            if not no_tn:
+                self.model_T.set_weights.set_weights(self.model_Q.get_weights())
+
             next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
             # next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
             target[0][action] = reward
@@ -117,7 +121,7 @@ class DQNAgent:
                 states.append(state[0])
                 targets.append(target[0])
 
-        if self.tau is not None:
+        if self.tau is not None:  
             self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
 
         if self.epsilon >= self.epsilon_min:
@@ -202,7 +206,7 @@ def dqn_learner(batch_size=24,
             if not no_ER:
                 agent.remember(state, action, reward, next_state, done)
                 
-            agent.replay()
+            agent.replay(no_TN)
             state = next_state
 
             if done:
