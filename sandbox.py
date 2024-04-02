@@ -24,6 +24,7 @@ def play_cartgame():
     play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=5)
 
 #play_cartgame()
-import numpy as np
-env = gym.make("CartPole-v1")
-
+from Experiment import load_run
+general_title = 'nn_experiment'
+test_title = '[12]'
+print(load_run(general_title,test_title))
