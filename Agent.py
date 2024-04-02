@@ -31,7 +31,7 @@ class DQNAgent:
 
         # fixed parameters
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.95
+        self.epsilon_decay = 0.99
         self.initial_epsilon = epsilon  # for epsilon reset
         self.max_steps = 500  # the envirment limit
         self.replay_buffer = deque(maxlen=2000)
@@ -153,11 +153,14 @@ class DQNAgent:
         except:
             print("Unable to save the file.")
 
-    def evaluate(self, env):
+    def evaluate(self, env, model):
         state, _ = env.reset(seed=0)
         state = np.reshape(state, [1, self.n_states])
         for step in range(200):
-            action = np.argmax(self.model_Q.predict(state, verbose=0))
+            if model == 'T':
+                action = np.argmax(self.model_T.predict(state, verbose=0))
+            else:
+                action = np.argmax(self.model_Q.predict(state, verbose=0))
             next_state, reward, term, trunc, info = env.step(action)
             next_state = np.reshape(next_state, [1, self.n_states])
             done = term or trunc
@@ -200,13 +203,15 @@ def dqn_learner(batch_size=24,
                 scores.append(step)
                 if agent.tau is not None:
                     agent.update_target_model(agent.tau)
-                agent.reset_epsilon()
-
                 train = True if len(agent.replay_buffer) > agent.train_start else False
-                eval = agent.evaluate(env)
-                log = "Episode: {}/{}, Train steps: {}, Eval: {}, train:{}, Parameters: epsilon={}, lr={}.\n".format(
-                    e + 1, max_episodes, step, eval, train, agent.epsilon, agent.learning_rate)
+
+                log = "Episode: {}/{}, Train steps: {}, train:{}, Parameters: epsilon={}, lr={}.".format(
+                    e + 1, max_episodes, step, train, agent.epsilon, agent.learning_rate)
                 print(log)
+                if e%5 == 0:
+                    evalT = agent.evaluate(env, 'T')
+                    print(f'Eval = {evalT}')
+                agent.reset_epsilon()
                 # agent.save_log(log)
                 break
 
