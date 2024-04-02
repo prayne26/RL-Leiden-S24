@@ -5,7 +5,7 @@ import random
 from collections import deque
 from Helper import argmax, softmax
 from Neural_network import DeepNeuralNetwork
-
+from tensorflow.python.client import device_lib
 
 class DQNAgent:
     def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, npl, max_episodes,
@@ -67,8 +67,7 @@ class DQNAgent:
             if self.temp is None:
                 raise KeyError("Provide a temperature")
 
-            a = \
-                np.random.choice(range(self.n_actions), 1,
+            a = np.random.choice(range(self.n_actions), 1,
                                  p=softmax(self.model_Q.predict(state, verbose=0), self.temp))[0]
 
         return a
@@ -131,11 +130,13 @@ class DQNAgent:
             print("Unable to save the file.")
 
     def run(self):
+        # print(device_lib.list_local_devices())
+        return
         print("Starting running...")
         self.clear_log()
         env = gym.make('CartPole-v1')
         scores = deque(maxlen=100)
-        for e in range(self.max_episodes):  # we may try diffrent criterion for stopping
+        for e in range(self.max_episodes): 
             state, _ = env.reset(seed=0)
             state = np.reshape(state, [1, self.n_state])
             self.epsilon = self.initial_epsilon

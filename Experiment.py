@@ -1,26 +1,67 @@
 from Agent import DQNAgent
 import time 
 import numpy as np
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
-def make_plots(perf, max_episodes, file_name, title):
+def make_plot(perf, max_episodes, file_name, title):
     x = np.arange(1, max_episodes+1)
     j=0
-    print(x, perf.values())
+
     plt.figure(figsize=(10, 6))
     for y in perf.values():
         j+=1
         plt.plot(x, y[0], label='DQN '+str(j))
 
     plt.xlabel('Episodes', fontsize=12)
-    plt.ylabel('Average Score', fontsize=12)
+    plt.ylabel('Score', fontsize=12)
+    plt.ylim(range(0,  200, 20))
     plt.title(title, fontsize=14)
     
     plt.legend(prop={'size':10})
     plt.grid(True)
     plt.savefig("Pics/"+file_name)
-    plt.show()
+    # plt.show()
+
+def nn_experiment():
+    max_episodes = 150
+    npls = [[32], [32,32], [32,32,32]]
+    
+    learning_rate = 0.001
+    gamma = 0.95, 
+
+    policy = 'egreedy'
+    epsilon = 0.9
+    state_size = 4  
+    action_size = 2  
+    batch_size = 32 
+
+    perf = {str(npl):[] for npl in npls}
+    for npl in npls:
+        agent = DQNAgent(state_size=state_size,
+                         action_size=action_size,
+                         learning_rate=learning_rate,
+                         gamma=gamma,
+                         policy=policy,
+                         batch_size=batch_size,
+                         epsilon=epsilon,
+                         npl=npl,
+                         max_episodes=max_episodes)
+    
+        scores = agent.run()
+        perf[str(npl)].append(scores)
+
+    pd.DataFrame(perf).to_csv('Layers_tune.csv', index=False)
+
+    print("Averges after 10 runns of each config: ")
+    for k, v in zip(perf.keys(), perf.values()):
+        print("{} : {}+/-{}".format(k, np.mean(v[0]), np.std(v[0])))
+
+    title = 'DQN Performance with different NN architecture'
+    file_name = 'Layers_perf.png'
+
+    make_plot(perf, max_episodes, file_name, title)
 
 
 def experiment():
@@ -90,11 +131,10 @@ def lr_experiment():
     for k, v in zip(perf.keys(), perf_mean):
         print("{} : {}+/-{}".format(k, np.mean(v[0]), np.std(v[0])))
 
-    title = 'DQN Performance with Different NN architecture'
+    title = 'DQN Performance with different NN architecture'
     file_name = 'Layers_perf.png'
 
     make_plot(perf, max_episodes, file_name, title)
-
 
 
 def gamma_experiment():
@@ -103,16 +143,16 @@ def gamma_experiment():
 def main():
     s = time.time()
 
-    experiment()
+    # experiment()
 
     # Chacking various NN architecture
-    #nn_experiment()
+    nn_experiment()
     
     # Checking various learning rate values
     #lr_experiment()
 
     # Checking various  values
-    gamma_experiment()
+    # gamma_experiment()
 
     print("Program finished. Total time: {} seconds.".format(round(time.time()-s, 2)))
 

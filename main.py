@@ -28,7 +28,7 @@ def main():
                         npl=npl,
                         max_episodes=max_episodes)
     
-    loss_avg, tot_rewards = agent.run()
+    scores = agent.run()
     
     print("Program finished. Total time: {} seconds.".format(round(time.time()-s,2)))
 
