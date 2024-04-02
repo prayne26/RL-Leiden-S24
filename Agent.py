@@ -12,7 +12,7 @@ import sys
 
 class DQNAgent:
     def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma,
-                 epsilon, tau, NPL):
+                 epsilon, tau, temp, NPL):
         '''npl - neurons per layer,, it will be a list with the numbers of neurons in the layers []'''
         self.n_states = state_size
         self.n_actions = action_size
@@ -20,7 +20,7 @@ class DQNAgent:
         # adjustables
         self.policy = policy
         self.weights_updating_frequency = 30
-        self.train_start = 1000
+        self.train_start = 500
 
         # hyperparameters
         self.gamma = gamma  # discount rate
@@ -28,6 +28,7 @@ class DQNAgent:
         self.learning_rate = learning_rate
         self.batch_size = batch_size
         self.tau = tau  # polyak coefficient for updating target model. if None, uses total replacement every _ training steps
+        self.temp = temp
 
         # fixed parameters
         self.epsilon_min = 0.01
@@ -176,13 +177,14 @@ def dqn_learner(batch_size=24,
                 gamma=0.9,
                 epsilon=1.,
                 tau=0.1,
+                temp=0.1,
                 NPL=None,
                 max_episodes=200):
     # starting run
     env = gym.make('CartPole-v1')
     state_size, action_size = env.observation_space.shape[0], env.action_space.n
     print(f'statesize:{state_size}, actionsize={action_size}')
-    agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, NPL)
+    agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, temp, NPL)
     agent.clear_log()
     scores, evals = [], []
 
@@ -208,7 +210,7 @@ def dqn_learner(batch_size=24,
                 print(log)
                 if agent.tau is not None:
                     agent.update_target_model(agent.tau)
-                    if train:
+                    if train and e%5 == 0:
                         evalT = agent.evaluate(env, 'T')
                         evals.append(evalT)
                         print(f'Eval = {evalT}')

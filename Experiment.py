@@ -54,7 +54,7 @@ def nn_experiment():
     npls1 = [12], [12, 12], [12, 12, 12, 12]
     npls2 = [8], [24], [128]
     general_title = 'nn_experiment'
-    max_episodes = 150
+    max_episodes = 100
     for npl in npls1:
         test_title = str(npl)
         scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
@@ -67,7 +67,7 @@ def nn_experiment():
 
 
 def lr_experiment():
-    max_episodes = 150
+    max_episodes = 100
     npl = [24, 24]
 
     learning_rate = 0.001
@@ -109,7 +109,13 @@ def lr_experiment():
 
 
 def gamma_experiment():
-    pass
+    general_title = 'nn_experiment'
+    max_episodes = 150
+    policies = ['egreedy', 'softmax']
+    for policy in policies:
+        test_title = str(policy)
+        scores, evals = dqn_learner(policy=policy,max_episodes=max_episodes)
+        save_run(scores, evals, general_title, test_title)
 
 
 def main():
@@ -121,8 +127,8 @@ def main():
     # Checking various learning rate values
     # lr_experiment()
 
-    # Checking various  values
-    gamma_experiment()
+    # Checking various  exploration methods
+    # gamma_experiment()
 
     print("Program finished. Total time: {} seconds.".format(round(time.time() - s, 2)))
 
