@@ -23,7 +23,6 @@ def main():
 
     max_episodes = 10000
     npl = [32,32]
-    solved=True
     
     learning_rate = 0.001
     gamma = 0.95, 
@@ -46,7 +45,7 @@ def main():
                         NPL=npl,
                         tau=0.1)
     
-    # scores = agent.run()
+    scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes, no_ER=no_er, no_TN=no_tn)
     
     print("Program finished. Total time: {} seconds.".format(round(time.time()-s,2)))
 
