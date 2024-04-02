@@ -2,6 +2,7 @@ from Agent import DQNAgent, dqn_learner
 import time
 import numpy as np
 import os
+import sys
 import pickle
 
 import matplotlib.pyplot as plt
@@ -106,7 +107,8 @@ def lr_experiment():
                          npl=npl,
                          max_episodes=max_episodes)
 
-        scores = agent.run_experiment()
+        scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
+
         perf[str(lr)].append(scores)
         # perf_mean.append(np.mean(scores))
 
@@ -130,17 +132,81 @@ def gamma_experiment():
         save_run(scores, evals, general_title, test_title)
 
 
+def ablation_study(no_er, no_tn):
+    if no_er == False and no_tn == False:
+        print("Error! Comparing DQN with DQN. It works don't worry about it :)")
+        return
+    
+    max_episodes = 100
+    npl = [32,32]
+    
+    learning_rate = 0.001 # Here should be tuned value
+    gamma = 0.95          # Here should be tuned value
+
+    policy = 'egreedy'
+    epsilon = 0.8
+    state_size = 4  
+    action_size = 2  
+    batch_size = 32 
+    
+    scores_dqn, evals_dqn = dqn_learner(state_size=state_size,
+                                        action_size=action_size,
+                                        learning_rate=learning_rate,
+                                        gamma=gamma,
+                                        policy=policy,
+                                        batch_size=batch_size,
+                                        epsilon=epsilon,
+                                        NPL=npl,
+                                        tau=0.1,
+                                        policy=policy,
+                                        max_episodes=max_episodes)
+    
+    scores_comp, evals_comp = dqn_learner(state_size=state_size,
+                                          action_size=action_size,
+                                          learning_rate=learning_rate,
+                                          gamma=gamma,
+                                          policy=policy,
+                                          batch_size=batch_size,
+                                          epsilon=epsilon,
+                                          NPL=npl,
+                                          tau=0.1,
+                                          policy=policy,
+                                          max_episodes=max_episodes, 
+                                          no_ER=no_er, no_TN=no_tn)
+
+    
+
+
 def main():
+    args = sys.argv[1:] if len(sys.argv) > 1 else None
+    modes = ['--ER', '--TN'] 
+    no_er, no_tn = False, False
+    
+    if args is not None:
+        if len(args) == 1 and args[0] == '--ER':
+            no_er = True
+        elif len(args) == 1 and args[0] == '--TN':
+            no_tn = True
+        elif len(args) == 2 and args[0] in modes and args[1] in modes:
+            no_er = True
+            no_tn = True
+        else:
+            print("Wrong argument(s)! You can only add two arguemnt: --ER or(and) --TN.")
+            return 
+        
     s = time.time()
+    if args is None:
+        # Chacking various NN architecture
+        nn_experiment()
 
-    # Chacking various NN architecture
-    nn_experiment()
+        # Checking various learning rate values
+        # lr_experiment()
 
-    # Checking various learning rate values
-    # lr_experiment()
+        # Checking various  exploration methods
+        # gamma_experiment()
+    else:
+        ablation_study(no_er, no_tn)
 
-    # Checking various  exploration methods
-    # gamma_experiment()
 
     print("Program finished. Total time: {} seconds.".format(round(time.time() - s, 2)))
 
