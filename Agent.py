@@ -3,7 +3,7 @@ import numpy as np
 import os
 import random
 from collections import deque
-from Helper import argmax, softmax
+from Helper import softmax
 from keras import layers
 import keras
 from keras.optimizers import Adam
@@ -176,15 +176,16 @@ def dqn_learner(batch_size=24,
                 gamma=0.9,
                 epsilon=1.,
                 tau=0.1,
-                NPL=None):
+                NPL=None,
+                max_episodes=200):
     # starting run
-    max_episodes = 300
     env = gym.make('CartPole-v1')
     state_size, action_size = env.observation_space.shape[0], env.action_space.n
     print(f'statesize:{state_size}, actionsize={action_size}')
     agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, NPL)
     agent.clear_log()
     scores = deque(maxlen=100)
+    evals = deque(maxlen=100)
 
     for e in range(max_episodes):  # we may try diffrent criterion for stopping
         state, _ = env.reset(seed=0)
@@ -201,16 +202,19 @@ def dqn_learner(batch_size=24,
 
             if done:
                 scores.append(step)
-                if agent.tau is not None:
-                    agent.update_target_model(agent.tau)
                 train = True if len(agent.replay_buffer) > agent.train_start else False
 
                 log = "Episode: {}/{}, Train steps: {}, train:{}, Parameters: epsilon={}, lr={}.".format(
                     e + 1, max_episodes, step, train, agent.epsilon, agent.learning_rate)
                 print(log)
-                if e%5 == 0:
-                    evalT = agent.evaluate(env, 'T')
-                    print(f'Eval = {evalT}')
+                if agent.tau is not None:
+                    agent.update_target_model(agent.tau)
+                    if train:
+                        evalT = agent.evaluate(env, 'T')
+                        evals.append(evalT)
+                        print(f'Eval = {evalT}')
+
+
                 agent.reset_epsilon()
                 # agent.save_log(log)
                 break
@@ -218,9 +222,12 @@ def dqn_learner(batch_size=24,
         if agent.tau is None:
             if agent.total_step_count % agent.weights_updating_frequency == 0:
                 agent.update_target_model(None)
+                evalT = agent.evaluate(env, 'T')
+                evals.append(evalT)
+                print(f'Eval = {evalT}')
 
     env.close()
-    return scores
+    return scores, evals
 
     #
     # def run_experiment(self):

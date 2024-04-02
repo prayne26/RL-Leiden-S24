@@ -1,36 +1,69 @@
 from Agent import DQNAgent, dqn_learner
-import time 
+import time
 import numpy as np
+import os
+import pickle
 
 import matplotlib.pyplot as plt
 
+
 def make_plot(perf, max_episodes, file_name, title):
-    x = np.arange(1, max_episodes+1)
-    j=0
+    x = np.arange(1, max_episodes + 1)
+    j = 0
     print(x, perf.values())
     plt.figure(figsize=(10, 6))
     for y in perf.values():
-        j+=1
-        plt.plot(x, y[0], label='DQN '+str(j))
+        j += 1
+        plt.plot(x, y[0], label='DQN ' + str(j))
 
     plt.xlabel('Episodes', fontsize=12)
     plt.ylabel('Average Score', fontsize=12)
     plt.title(title, fontsize=14)
-    
-    plt.legend(prop={'size':10})
+
+    plt.legend(prop={'size': 10})
     plt.grid(True)
-    plt.savefig("Pics/"+file_name)
+    plt.savefig("Pics/" + file_name)
     plt.show()
 
 
-def experiment():
-    scores = dqn_learner()
-    print(f'average score = {np.mean(scores)}')
-    print(f'highest score = {np.max(scores)}')
-    for interval_score in np.array_split(scores,10):
-        print(f'   interval mean: {np.mean(interval_score)}')
-    print(scores)
-    #we should plot past 50 or 100 episode average instead of raw
+def save_run(scores, evals, general_title, test_title):
+    path = "Logs/"
+    file_name = general_title + '_' + test_title + ".txt"
+    if not os.path.exists(path):
+        os.makedirs(path)
+    try:
+        # pickle to store lists instead of strings
+        with open(path + file_name, "wb") as myfile:
+            pickle.dump([scores, evals], myfile)
+    except:
+        print("Unable to save the file.")
+
+
+def load_run(general_title, test_title):
+    path = "Logs/"
+    file_name = general_title + '_' + test_title + ".txt"
+    try:
+        # pickle to store lists instead of strings
+        with open(path + file_name, "rb") as myfile:
+            return pickle.load(myfile)
+    except:
+        print("Unable to read the file.")
+
+
+def nn_experiment():
+    npls1 = [12], [12, 12], [12, 12, 12]
+    npls2 = [8], [24], [128]
+    general_title = 'nn_experiment'
+    for npl in npls1:
+        test_title = str(npl)
+        scores, evals = dqn_learner(NPL=npl, max_episodes=50)
+        save_run(scores, evals, general_title, test_title)
+
+    for npl in npls2:
+        test_title = str(npl)
+        scores, evals = dqn_learner(NPL=npl, max_episodes=50)
+        save_run(scores, evals, general_title, test_title)
+
 
 def lr_experiment():
     max_episodes = 150
@@ -74,26 +107,24 @@ def lr_experiment():
     make_plot(perf, max_episodes, file_name, title)
 
 
-
 def gamma_experiment():
     pass
+
 
 def main():
     s = time.time()
 
-    experiment()
-
     # Chacking various NN architecture
-    #nn_experiment()
-    
+    nn_experiment()
+
     # Checking various learning rate values
-    #lr_experiment()
+    # lr_experiment()
 
     # Checking various  values
     gamma_experiment()
 
-    print("Program finished. Total time: {} seconds.".format(round(time.time()-s, 2)))
+    print("Program finished. Total time: {} seconds.".format(round(time.time() - s, 2)))
+
 
 if __name__ == '__main__':
     main()
-  
