@@ -17,20 +17,3 @@ class DeepNeuralNetwork():
     #     if K.tensorflow_backend._get_available_gpus():
             # print("Running on GPU.")
         
-    def custom_network(self):
-        if len(self.neurons_per_layer) != self.n_layers:
-            print("Wrong number! More/less elements in the list neurons_per_layer then the layers number.")
-            sys.exit() 
-            return
-        
-        model = keras.Sequential()       
-        for l,npl in zip(range(self.n_layers), self.neurons_per_layer):
-            if  l == 0:
-                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', input_dim=self.input_size, name="L"+str(l)))
-            else:
-                model.add(layers.Dense(npl, activation='relu', kernel_initializer='he_uniform', name="L"+str(l)))
-                        
-        model.add(layers.Dense(self.output_size, activation='linear', kernel_initializer='he_uniform'))
-              
-        model.compile(loss='mse', optimizer=Adam(learning_rate=self.lr), metrics=['accuracy', 'mse'])
-        return model

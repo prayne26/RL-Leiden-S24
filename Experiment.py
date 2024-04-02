@@ -1,10 +1,10 @@
-from Agent import DQNAgent
+from Agent import DQNAgent, dqn_learner
 import time 
 import numpy as np
 
 import matplotlib.pyplot as plt
 
-def make_plots(perf, max_episodes, file_name, title):
+def make_plot(perf, max_episodes, file_name, title):
     x = np.arange(1, max_episodes+1)
     j=0
     print(x, perf.values())
@@ -24,29 +24,7 @@ def make_plots(perf, max_episodes, file_name, title):
 
 
 def experiment():
-    max_episodes = 300
-    npl = [24,24]
-    
-    lr = 0.001
-    gamma = 0.9,
-
-    policy = 'egreedy'
-    epsilon = 1.
-    state_size = 4  
-    action_size = 2  
-    batch_size = 24
-
-    agent = DQNAgent(state_size=state_size,
-                        action_size=action_size,
-                        learning_rate=lr,
-                        gamma=gamma,
-                        policy=policy,
-                        batch_size=batch_size,
-                        epsilon=epsilon,
-                        npl=npl,
-                        max_episodes=max_episodes)
-
-    scores = agent.run()
+    scores = dqn_learner()
     print(f'average score = {np.mean(scores)}')
     print(f'highest score = {np.max(scores)}')
     for interval_score in np.array_split(scores,10):
