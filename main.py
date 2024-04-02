@@ -1,8 +1,26 @@
 #  Here we can just play one of the modefrom
-from Agent import DQNAgent
+from Agent import DQNAgent, dqn_learner
+import sys
 import time
 
 def main():
+    args = sys.argv[1:] if len(sys.argv) > 1 else None
+    modes = ['--ER', '--TN'] 
+    no_er, no_tn = False, False
+    
+    if args is not None:
+        if len(args) == 1 and args[0] == '--ER':
+            no_er = True
+        elif len(args) == 1 and args[0] == '--TN':
+            no_tn = True
+        elif len(args) == 2 and args[0] in modes and args[1] in modes:
+            no_er = True
+            no_tn = True
+        else:
+            print("Wrong argument(s)! You can only add two arguemnt: --ER or(and) --TN.")
+            return 
+        
+
     max_episodes = 10000
     npl = [32,32]
     solved=True
@@ -25,10 +43,10 @@ def main():
                         policy=policy,
                         batch_size=batch_size,
                         epsilon=epsilon,
-                        npl=npl,
-                        max_episodes=max_episodes)
+                        NPL=npl,
+                        tau=0.1)
     
-    scores = agent.run()
+    # scores = agent.run()
     
     print("Program finished. Total time: {} seconds.".format(round(time.time()-s,2)))
 

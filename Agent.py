@@ -177,7 +177,9 @@ def dqn_learner(batch_size=24,
                 epsilon=1.,
                 tau=0.1,
                 NPL=None,
-                max_episodes=200):
+                max_episodes=200,
+                no_ER=False,
+                no_TN=False):
     # starting run
     env = gym.make('CartPole-v1')
     state_size, action_size = env.observation_space.shape[0], env.action_space.n
@@ -195,7 +197,9 @@ def dqn_learner(batch_size=24,
             done = term or trunc
             next_state = np.reshape(next_state, [1, agent.n_states])
             reward = reward if not done else -100
-            agent.remember(state, action, reward, next_state, done)
+            if not no_ER:
+                agent.remember(state, action, reward, next_state, done)
+                
             agent.replay()
             state = next_state
 
