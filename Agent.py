@@ -19,7 +19,7 @@ class DQNAgent:
 
         # adjustables
         self.policy = policy
-        self.weights_updating_frequency = 50
+        self.weights_updating_frequency = 20
         self.train_start = 1000
         self.ddqn = ddqn
 
@@ -209,32 +209,25 @@ def dqn_learner(batch_size=24,
             agent.replay(no_TN)
             state = next_state
 
+            if not ddqn:
+                agent.update_target_model()
+
             if done:
                 scores.append(step)
                 train = True if len(agent.replay_buffer) > agent.train_start else False
 
-                log = "Episode: {}/{}, Train steps: {}, train:{}, Parameters: epsilon={}, lr={}.".format(
-                    e + 1, max_episodes, step, train, agent.epsilon, agent.learning_rate)
+                log = "Episode: {}/{}, score: {}, train:{}".format(
+                    e + 1, max_episodes, step, train)
                 print(log)
                 if ddqn:
                     agent.update_target_model(agent.tau)
-                    if train and e%5 == 0:
-                        evalT = agent.evaluate(env, 'T')
-                        evals.append(evalT)
-                        print(f'Eval = {evalT}')
-
-
                 agent.reset_epsilon()
-                # agent.save_log(log)
                 break
 
-        if not ddqn:
-            if agent.total_step_count % agent.weights_updating_frequency == 0 and agent.total_step_count != 0:
-                agent.update_target_model()
-                evalT = agent.evaluate(env, 'T')
-                evals.append(evalT)
-                print(f'Eval = {evalT}')
-
+        if len(agent.replay_buffer) > agent.train_start and e % 5 == 0:
+            evalT = agent.evaluate(env, 'T')
+            evals.append(evalT)
+            print(f'Eval = {evalT}')
     env.close()
     return scores, evals
 

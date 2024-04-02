@@ -158,7 +158,6 @@ def ablation_study(no_er, no_tn):
                                         epsilon=epsilon,
                                         NPL=npl,
                                         tau=0.1,
-                                        policy=policy,
                                         max_episodes=max_episodes)
     
     scores_comp, evals_comp = dqn_learner(state_size=state_size,
@@ -170,7 +169,6 @@ def ablation_study(no_er, no_tn):
                                           epsilon=epsilon,
                                           NPL=npl,
                                           tau=0.1,
-                                          policy=policy,
                                           max_episodes=max_episodes, 
                                           no_ER=no_er, no_TN=no_tn)
 
@@ -212,4 +210,5 @@ def main():
 
 
 if __name__ == '__main__':
-    main()
+    #main()
+    dqn_vs_ddqn()
