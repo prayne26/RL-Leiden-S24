@@ -184,8 +184,7 @@ def dqn_learner(batch_size=24,
     print(f'statesize:{state_size}, actionsize={action_size}')
     agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, NPL)
     agent.clear_log()
-    scores = deque(maxlen=100)
-    evals = deque(maxlen=100)
+    scores, evals = [], []
 
     for e in range(max_episodes):  # we may try diffrent criterion for stopping
         state, _ = env.reset(seed=0)

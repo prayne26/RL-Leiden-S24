@@ -51,17 +51,18 @@ def load_run(general_title, test_title):
 
 
 def nn_experiment():
-    npls1 = [12], [12, 12], [12, 12, 12]
+    npls1 = [12], [12, 12], [12, 12, 12, 12]
     npls2 = [8], [24], [128]
     general_title = 'nn_experiment'
+    max_episodes = 150
     for npl in npls1:
         test_title = str(npl)
-        scores, evals = dqn_learner(NPL=npl, max_episodes=50)
+        scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
         save_run(scores, evals, general_title, test_title)
 
     for npl in npls2:
         test_title = str(npl)
-        scores, evals = dqn_learner(NPL=npl, max_episodes=50)
+        scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
         save_run(scores, evals, general_title, test_title)
 
 
