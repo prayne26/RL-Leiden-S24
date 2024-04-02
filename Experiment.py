@@ -121,7 +121,7 @@ def gamma_experiment():
         save_run(scores, evals, general_title, test_title)
 
 
-def abolition_study(no_er, no_tn):
+def ablation_study(no_er, no_tn):
     if no_er == False and no_tn == False:
         print("Error! Comparing DQN with DQN. It works don't worry about it :)")
         return
@@ -137,8 +137,6 @@ def abolition_study(no_er, no_tn):
     state_size = 4  
     action_size = 2  
     batch_size = 32 
-    
-
     
     scores_dqn, evals_dqn = dqn_learner(state_size=state_size,
                                         action_size=action_size,
@@ -196,7 +194,7 @@ def main():
         # Checking various  exploration methods
         # gamma_experiment()
     else:
-        abolition_study(no_er, no_tn)
+        ablation_study(no_er, no_tn)
 
 
     print("Program finished. Total time: {} seconds.".format(round(time.time() - s, 2)))
