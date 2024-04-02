@@ -119,8 +119,11 @@ class DQNAgent:
         if self.tau is not None:
             self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
 
-        if self.epsilon > self.epsilon_min:
+        if self.epsilon >= self.epsilon_min:
             self.epsilon *= self.epsilon_decay
+
+    def reset_epsilon(self):
+        self.epsilon = self.initial_epsilon
 
     def load(self, name):
         self.model_Q.load_weights(name)
@@ -150,6 +153,19 @@ class DQNAgent:
         except:
             print("Unable to save the file.")
 
+    def evaluate(self, env):
+        state, _ = env.reset(seed=0)
+        state = np.reshape(state, [1, self.n_states])
+        for step in range(200):
+            action = np.argmax(self.model_Q.predict(state, verbose=0))
+            next_state, reward, term, trunc, info = env.step(action)
+            next_state = np.reshape(next_state, [1, self.n_states])
+            done = term or trunc
+            if done:
+                return step
+            state = next_state
+        return 200
+
 
 def dqn_learner(batch_size=24,
                 policy='egreedy',
@@ -170,8 +186,6 @@ def dqn_learner(batch_size=24,
     for e in range(max_episodes):  # we may try diffrent criterion for stopping
         state, _ = env.reset(seed=0)
         state = np.reshape(state, [1, agent.n_states])
-        agent.epsilon = agent.initial_epsilon
-
         for step in range(agent.max_steps):  # CartPole-v1 enforced max step
             action = agent.act(state)
             next_state, reward, term, trunc, info = env.step(action)
@@ -186,10 +200,12 @@ def dqn_learner(batch_size=24,
                 scores.append(step)
                 if agent.tau is not None:
                     agent.update_target_model(agent.tau)
+                agent.reset_epsilon()
 
                 train = True if len(agent.replay_buffer) > agent.train_start else False
-                log = "Episode: {}/{}, Total steps: {}, train:{}, Parameters: epsilon={}, lr={}.\n".format(
-                    e + 1, max_episodes, step, train, agent.epsilon, agent.learning_rate)
+                eval = agent.evaluate(env)
+                log = "Episode: {}/{}, Train steps: {}, Eval: {}, train:{}, Parameters: epsilon={}, lr={}.\n".format(
+                    e + 1, max_episodes, step, eval, train, agent.epsilon, agent.learning_rate)
                 print(log)
                 # agent.save_log(log)
                 break
