@@ -12,15 +12,16 @@ import sys
 
 class DQNAgent:
     def __init__(self, state_size, action_size, batch_size, policy, learning_rate, gamma,
-                 epsilon, tau, temp, NPL):
+                 epsilon, tau, temp, NPL, ddqn):
         '''npl - neurons per layer,, it will be a list with the numbers of neurons in the layers []'''
         self.n_states = state_size
         self.n_actions = action_size
 
         # adjustables
         self.policy = policy
-        self.weights_updating_frequency = 30
-        self.train_start = 500
+        self.weights_updating_frequency = 50
+        self.train_start = 1000
+        self.ddqn = ddqn
 
         # hyperparameters
         self.gamma = gamma  # discount rate
@@ -62,15 +63,16 @@ class DQNAgent:
 
     def update_target_model(self, tau=None):
         # Copy weights from the main model to target_model
-        if tau is None:
-            self.model_T.set_weights(self.model_Q.get_weights())
-        else:
+        if self.ddqn:
             # Polyak averaging
             current_weights = self.model_Q.get_weights()
             target_weights = self.model_T.get_weights()
             for i in range(len(target_weights)):
                 target_weights[i] = current_weights[i] * tau + target_weights[i] * (1 - tau)
             self.model_T.set_weights(target_weights)
+
+        else:
+            self.model_T.set_weights(self.model_Q.get_weights())
 
     def remember(self, state, action, reward, next_state, done):
         self.replay_buffer.append((state, action, reward, next_state, done))
@@ -101,28 +103,25 @@ class DQNAgent:
         batch = random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
         states, targets = [], []
         for state, action, reward, next_state, done in batch:
-            target = self.model_Q.predict(state, verbose=0)
-            q_action = np.argmax(self.model_Q.predict(next_state, verbose=0)[0])
-
             if not no_tn:
-                self.model_T.set_weights.set_weights(self.model_Q.get_weights())
+                self.model_T.set_weights(self.model_Q.get_weights())
 
-            next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
-            # next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
+            if self.ddqn:
+                q_action = np.argmax(self.model_Q.predict(next_state, verbose=0)[0])
+                next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
+            else:
+                next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
+
+            target = self.model_Q.predict(state, verbose=0)
             target[0][action] = reward
             if not done:
                 target[0][action] = reward + self.gamma * next_qval
-            if self.tau is None:
-                # First method, updating target network every n timesteps by total replacement
-                self.model_Q.fit(state, target, epochs=1, verbose=0)
-                self.total_step_count += 1
-            else:
-                # Second method, updating target network in batches and target every episode
-                states.append(state[0])
-                targets.append(target[0])
+            self.total_step_count += 1
 
-        if self.tau is not None:  
-            self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
+            states.append(state[0])
+            targets.append(target[0])
+
+        self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
 
         if self.epsilon >= self.epsilon_min:
             self.epsilon *= self.epsilon_decay
@@ -184,13 +183,14 @@ def dqn_learner(batch_size=24,
                 temp=0.1,
                 NPL=None,
                 max_episodes=200,
+                ddqn=False,
                 no_ER=False,
                 no_TN=False):
     # starting run
     env = gym.make('CartPole-v1')
     state_size, action_size = env.observation_space.shape[0], env.action_space.n
     print(f'statesize:{state_size}, actionsize={action_size}')
-    agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, temp, NPL)
+    agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, temp, NPL, ddqn)
     agent.clear_log()
     scores, evals = [], []
 
@@ -216,7 +216,7 @@ def dqn_learner(batch_size=24,
                 log = "Episode: {}/{}, Train steps: {}, train:{}, Parameters: epsilon={}, lr={}.".format(
                     e + 1, max_episodes, step, train, agent.epsilon, agent.learning_rate)
                 print(log)
-                if agent.tau is not None:
+                if ddqn:
                     agent.update_target_model(agent.tau)
                     if train and e%5 == 0:
                         evalT = agent.evaluate(env, 'T')
@@ -228,9 +228,9 @@ def dqn_learner(batch_size=24,
                 # agent.save_log(log)
                 break
 
-        if agent.tau is None:
-            if agent.total_step_count % agent.weights_updating_frequency == 0:
-                agent.update_target_model(None)
+        if not ddqn:
+            if agent.total_step_count % agent.weights_updating_frequency == 0 and agent.total_step_count != 0:
+                agent.update_target_model()
                 evalT = agent.evaluate(env, 'T')
                 evals.append(evalT)
                 print(f'Eval = {evalT}')

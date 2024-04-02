@@ -50,12 +50,23 @@ def load_run(general_title, test_title):
     except:
         print("Unable to read the file.")
 
+def dqn_vs_ddqn():
+    general_title = 'dqnVSddqn'
+    max_episodes = 200
+
+    test_title = 'dqn'
+    scores, evals = dqn_learner(ddqn=False,max_episodes=max_episodes)
+    save_run(scores, evals, general_title, test_title)
+
+    test_title = 'ddqn'
+    scores, evals = dqn_learner(ddqn=False, max_episodes=max_episodes)
+    save_run(scores, evals, general_title, test_title)
 
 def nn_experiment():
     npls1 = [12], [12, 12], [12, 12, 12, 12]
     npls2 = [8], [24], [128]
     general_title = 'nn_experiment'
-    max_episodes = 100
+    max_episodes = 200
     for npl in npls1:
         test_title = str(npl)
         scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
