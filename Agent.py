@@ -43,7 +43,7 @@ class DQNAgent:
             NPL = [24, 24]
         self.model_Q = self.custom_network(NPL)  # main neural network
         self.model_T = self.custom_network(NPL)  # target neural network
-        self.update_target_model(None)
+        self.model_T.set_weights(self.model_Q.get_weights())
 
         self.total_step_count = 0
 
@@ -70,7 +70,6 @@ class DQNAgent:
             for i in range(len(target_weights)):
                 target_weights[i] = current_weights[i] * tau + target_weights[i] * (1 - tau)
             self.model_T.set_weights(target_weights)
-
         else:
             self.model_T.set_weights(self.model_Q.get_weights())
 
@@ -117,7 +116,6 @@ class DQNAgent:
             if not done:
                 target[0][action] = reward + self.gamma * next_qval
             self.total_step_count += 1
-
             states.append(state[0])
             targets.append(target[0])
 
@@ -135,27 +133,27 @@ class DQNAgent:
     def save(self, name):
         self.model_Q.save_weights(name)
 
-    def clear_log(self):
-        path = "Logs/"
-        file_name = "log.txt"
-        if not os.path.exists(path):
-            os.makedirs(path)
-        try:
-            with open(path + file_name, "w") as myfile:
-                myfile.write("")
-        except:
-            print("Unable to clear the file.")
-
-    def save_log(self, log):
-        path = "Logs/"
-        file_name = "log.txt"
-        if not os.path.exists(path):
-            os.makedirs(path)
-        try:
-            with open(path + file_name, "a") as myfile:
-                myfile.write(log)
-        except:
-            print("Unable to save the file.")
+    # def clear_log(self):
+    #     path = "Logs/"
+    #     file_name = "log.txt"
+    #     if not os.path.exists(path):
+    #         os.makedirs(path)
+    #     try:
+    #         with open(path + file_name, "w") as myfile:
+    #             myfile.write("")
+    #     except:
+    #         print("Unable to clear the file.")
+    #
+    # def save_log(self, log):
+    #     path = "Logs/"
+    #     file_name = "log.txt"
+    #     if not os.path.exists(path):
+    #         os.makedirs(path)
+    #     try:
+    #         with open(path + file_name, "a") as myfile:
+    #             myfile.write(log)
+    #     except:
+    #         print("Unable to save the file.")
 
     def evaluate(self, env, model):
         state, _ = env.reset(seed=0)
@@ -189,12 +187,11 @@ def dqn_learner(batch_size=24,
     # starting run
     env = gym.make('CartPole-v1')
     state_size, action_size = env.observation_space.shape[0], env.action_space.n
-    print(f'statesize:{state_size}, actionsize={action_size}')
     agent = DQNAgent(state_size, action_size, batch_size, policy, learning_rate, gamma, epsilon, tau, temp, NPL, ddqn)
-    agent.clear_log()
+    #agent.clear_log()
     scores, evals = [], []
 
-    for e in range(max_episodes):  # we may try diffrent criterion for stopping
+    for e in range(max_episodes):
         state, _ = env.reset(seed=0)
         state = np.reshape(state, [1, agent.n_states])
         for step in range(agent.max_steps):  # CartPole-v1 enforced max step
@@ -209,9 +206,6 @@ def dqn_learner(batch_size=24,
             agent.replay(no_TN)
             state = next_state
 
-            if not ddqn:
-                agent.update_target_model()
-
             if done:
                 scores.append(step)
                 train = True if len(agent.replay_buffer) > agent.train_start else False
@@ -219,15 +213,18 @@ def dqn_learner(batch_size=24,
                 log = "Episode: {}/{}, score: {}, train:{}".format(
                     e + 1, max_episodes, step, train)
                 print(log)
-                if ddqn:
-                    agent.update_target_model(agent.tau)
-                agent.reset_epsilon()
+                agent.update_target_model(agent.tau)
+                #agent.reset_epsilon()
                 break
+            if agent.total_step_count%agent.weights_updating_frequency==0 and agent.total_step_count != 0:
+                agent.update_target_model()
+            # if step % 10 == 0:
+            #     agent.update_target_model()
 
         if len(agent.replay_buffer) > agent.train_start and e % 5 == 0:
             evalT = agent.evaluate(env, 'T')
             evals.append(evalT)
-            print(f'Eval = {evalT}')
+            print(f'Eval T = {evalT}')
     env.close()
     return scores, evals
 
