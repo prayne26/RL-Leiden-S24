@@ -33,8 +33,7 @@ class DQNAgent:
 
         # fixed parameters
         self.epsilon_min = 0.01
-        self.epsilon_decay = 0.99
-        self.initial_epsilon = epsilon  # for epsilon reset
+        self.epsilon_decay = 0.999
         self.max_steps = 500  # the envirment limit
         self.replay_buffer = deque(maxlen=2000)
 
@@ -123,9 +122,10 @@ class DQNAgent:
 
         if self.epsilon >= self.epsilon_min:
             self.epsilon *= self.epsilon_decay
-
-    def reset_epsilon(self):
-        self.epsilon = self.initial_epsilon
+        else:
+            if self.epsilon_decay < 1:
+                print(f'min epsilon={self.epsilon} reached')
+            self.epsilon_decay = 1.
 
     def load(self, name):
         self.model_Q.load_weights(name)
@@ -210,8 +210,8 @@ def dqn_learner(batch_size=24,
                 scores.append(step)
                 train = True if len(agent.replay_buffer) > agent.train_start else False
 
-                log = "Episode: {}/{}, score: {}, train:{}".format(
-                    e + 1, max_episodes, step, train)
+                log = "Episode: {}/{}, score: {}, train:{}, training count: {}".format(
+                    e + 1, max_episodes, step, train, agent.total_step_count)
                 print(log)
                 agent.update_target_model(agent.tau)
                 #agent.reset_epsilon()
