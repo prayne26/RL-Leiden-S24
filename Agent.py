@@ -47,10 +47,6 @@ class DQNAgent:
         self.total_step_count = 0
 
     def custom_network(self, NPL):
-        # if len(self.neurons_per_layer) != self.n_layers:
-        #     print("Wrong number! More/less elements in the list neurons_per_layer then the layers number.")
-        #     sys.exit()
-        #     return
         model = keras.Sequential()
         model.add(layers.Input(shape=(self.n_states,)))
         for l in range(len(NPL)):
@@ -95,7 +91,7 @@ class DQNAgent:
             raise KeyError('Provide a valid policy')
         return a
 
-    def replay(self, no_tn):
+    def replay(self, no_tn, no_er):
         if len(self.replay_buffer) < self.train_start:
             return
         batch = random.sample(self.replay_buffer, min(self.batch_size, len(self.replay_buffer)))
@@ -126,6 +122,9 @@ class DQNAgent:
             if self.epsilon_decay < 1:
                 print(f'min epsilon={self.epsilon} reached')
             self.epsilon_decay = 1.
+        
+        if no_er: 
+            self.replay_buffer.clear()
 
     def load(self, name):
         self.model_Q.load_weights(name)
@@ -200,10 +199,10 @@ def dqn_learner(batch_size=24,
             done = term or trunc
             next_state = np.reshape(next_state, [1, agent.n_states])
             reward = reward if not done else -100
-            if not no_ER:
-                agent.remember(state, action, reward, next_state, done)
-                
-            agent.replay(no_TN)
+           
+            agent.remember(state, action, reward, next_state, done)     
+            agent.replay(no_TN, no_ER)
+
             state = next_state
 
             if done:

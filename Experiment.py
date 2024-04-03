@@ -127,10 +127,10 @@ def gamma_experiment():
 
 def ablation_study(no_er, no_tn):
     if no_er == False and no_tn == False:
-        print("Error! Comparing DQN with DQN. It works don't worry about it :)")
+        print("Error! Comparing DQN with DQN.")
         return
     
-    max_episodes = 100
+    max_episodes = 200
     npl = [24,24]
     
     learning_rate = 0.001 # Here should be tuned value
