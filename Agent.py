@@ -34,7 +34,7 @@ class DQNAgent:
         # fixed parameters
         self.epsilon_min = 0.01
         self.epsilon_decay = 0.999
-        self.max_steps = 500  # the envirment limit
+        self.max_steps = 200  # the envirment limit
         self.replay_buffer = deque(maxlen=2000)
 
         # neural network setup
@@ -225,6 +225,10 @@ def dqn_learner(batch_size=24,
             evalT = agent.evaluate(env, 'T')
             evals.append(evalT)
             print(f'Eval T = {evalT}')
+
+        if np.mean(scores[-min(50, len(scores)):]) >= 195:
+            print(f'problem solved in {e} episodes')
+            break
     env.close()
     return scores, evals
 
