@@ -95,7 +95,7 @@ def lr_experiment():
     print("Starting tunning learning rate...")
     general_title = 'lr_experiment'
     max_episodes = 100
-    learning_rates = [0.1, 0.01, 0.001]
+    learning_rates = [0.001]
 
     title = "Tune learning rate"
     scorces_list = []
