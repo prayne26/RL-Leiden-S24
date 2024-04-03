@@ -6,7 +6,7 @@
 
 *DQN_learner.py* contains the 
 
-*Experiment.py* contains the functions for running varying learners for varying parameters, collecting the results.
+*Experiment.py* contains the functions for running varying learners for varying parameters and collecting the results. By adding an additional flag, you can perform an ablation study.
 
 *main.py* using this we will be able to run diffrent versions of agent without any parameters
 
