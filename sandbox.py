@@ -1,29 +1,10 @@
 import gymnasium as gym
 import time
+from Experiment import make_plot, save_run
 
-def previewEnvironment():
-    env = gym.make("CartPole-v1", render_mode="human")
-    observation, info = env.reset()
-    print(f'initial state = {observation}')
-    for _ in range(100):
-        action = env.action_space.sample()
-        observation, reward, terminated, truncated, info = env.step(action)
-        time.sleep(0.1)
-        print(f'next state = {observation:.4f}, reward = {reward}')
+temp_001 = [17, 17, 13, 15, 11, 15, 15, 21, 8, 20, 40, 46, 58, 27, 15, 20, 10, 27, 21, 12, 61, 25, 41, 33, 13, 27, 37, 16, 17, 54, 11, 40, 40, 9, 9, 13, 20, 15, 14, 16, 20, 15, 13, 22, 16, 9, 45, 14, 31, 10, 20, 23, 8, 58, 11, 24, 15, 15, 35, 35, 15, 10, 19, 26, 33, 19, 18, 16, 12, 19, 12, 9, 30, 11, 14, 28, 62, 42, 29, 46, 27, 17, 16, 18, 23, 29, 51, 17, 18, 54, 54, 17, 22, 13, 19, 23, 16, 24, 49, 16, 32, 11, 10, 11, 26, 25, 43, 35, 33, 24, 14, 50, 14, 8, 33, 48, 18, 73, 10, 38, 33, 22, 28, 14, 11, 40, 16, 84, 33, 15, 68, 35, 59, 21, 19, 12, 15, 24, 8, 22, 23, 16, 13, 24, 57, 26, 24, 17, 17, 10]
+temp_010 = [13, 10, 10, 8, 7, 12, 11, 9, 20, 7, 11, 12, 10, 7, 10, 9, 12, 13, 15, 9, 10, 7, 9, 8, 11, 10, 8, 40, 8, 10, 17, 8, 9, 7, 13, 8, 7, 13, 10, 12, 12, 8, 7, 10, 9, 7, 11, 12, 22, 7, 8, 8, 7, 10, 17, 8, 14, 8, 9, 9, 8, 9, 9, 11, 8, 19, 10, 12, 18, 10, 13, 9, 9, 13, 18, 9, 12, 9, 9, 7, 8, 9, 7, 13, 7, 12, 8, 8, 11, 9, 11, 7, 13, 9, 8, 10, 7, 10, 22, 8, 28, 71, 13, 69, 35, 36, 53, 69, 77, 61, 29, 50, 37, 64, 68, 79, 43, 67, 46, 16, 42, 56, 28, 54, 46, 48, 52, 62, 104, 18, 142, 99, 98, 56, 67, 94, 38, 54, 38, 26, 55, 83, 18, 72, 51, 31, 48, 82, 32]
+temp_100 = [96, 86, 85, 85, 84, 97, 75, 76, 86, 79, 51, 27, 20, 32, 17, 12, 10, 10, 12, 13, 75, 19, 13, 7, 12, 13, 15, 12, 11, 14, 18, 31, 33, 38, 33, 29, 27, 39, 36, 41, 46, 53, 35, 49, 43, 59, 61, 67, 105, 61, 54, 65, 69, 62, 53, 71, 83, 62, 74, 84, 78, 114, 141, 161]
 
-        if terminated or truncated:
-            observation, info = env.reset()
-            print('kil\n')
-    env.close()
+make_plot([temp_001, temp_010, temp_100], ['temp_0.01', 'temp_0.1', 'temp_1'], len(temp_001), 'Softmax Exploration DQN Performances')
 
-import pygame
-from gymnasium.utils.play import play
-def play_cartgame():
-    mapping = {(pygame.K_LEFT,): 0, (pygame.K_RIGHT,): 1}
-    play(gym.make("CartPole-v1", render_mode='rgb_array'), keys_to_action=mapping, fps=5)
-
-#play_cartgame()
-from Experiment import load_run
-general_title = 'nn_experiment'
-test_title = '[12]'
-print(load_run(general_title,test_title))

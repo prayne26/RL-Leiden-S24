@@ -56,9 +56,9 @@ class DQNAgent:
         model.compile(loss='mse', optimizer=Adam(learning_rate=self.learning_rate))
         return model
 
-    def update_target_model(self, tau=None):
+    def update_target_model(self, tau=None, pa_toggle=False):
         # Copy weights from the main model to target_model
-        if self.ddqn:
+        if pa_toggle:
             # Polyak averaging
             current_weights = self.model_Q.get_weights()
             target_weights = self.model_T.get_weights()
@@ -114,7 +114,7 @@ class DQNAgent:
             targets.append(target[0])
 
         self.total_step_count += 1
-        self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=1)
+        self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
 
         if self.epsilon >= self.epsilon_min:
             self.epsilon *= self.epsilon_decay
@@ -131,28 +131,6 @@ class DQNAgent:
 
     def save(self, name):
         self.model_Q.save_weights(name)
-
-    # def clear_log(self):
-    #     path = "Logs/"
-    #     file_name = "log.txt"
-    #     if not os.path.exists(path):
-    #         os.makedirs(path)
-    #     try:
-    #         with open(path + file_name, "w") as myfile:
-    #             myfile.write("")
-    #     except:
-    #         print("Unable to clear the file.")
-    #
-    # def save_log(self, log):
-    #     path = "Logs/"
-    #     file_name = "log.txt"
-    #     if not os.path.exists(path):
-    #         os.makedirs(path)
-    #     try:
-    #         with open(path + file_name, "a") as myfile:
-    #             myfile.write(log)
-    #     except:
-    #         print("Unable to save the file.")
 
     def evaluate(self, env, model):
         state, _ = env.reset(seed=0)
@@ -212,52 +190,16 @@ def dqn_learner(batch_size=24,
                 log = "Episode: {}/{}, score: {}, train:{}, training count: {}".format(
                     e + 1, max_episodes, step, train, agent.total_step_count)
                 print(log)
-                agent.update_target_model(agent.tau)
-                #agent.reset_epsilon()
+                agent.update_target_model(agent.tau, pa_toggle=True)
                 break
-            if agent.total_step_count%agent.weights_updating_frequency==0 and agent.total_step_count != 0:
-                agent.update_target_model()
-            # if step % 10 == 0:
+            # if agent.total_step_count%agent.weights_updating_frequency==0 and agent.total_step_count != 0 and not ddqn:
             #     agent.update_target_model()
+
 
         if len(agent.replay_buffer) > agent.train_start and e % 5 == 0:
             evalT = agent.evaluate(env, 'T')
             evals.append(evalT)
             print(f'Eval T = {evalT}')
 
-        if np.mean(scores[-min(50, len(scores)):]) >= 195:
-            print(f'problem solved in {e} episodes')
-            break
     env.close()
     return scores, evals
-
-    #
-    # def run_experiment(self):
-    #     env = gym.make('CartPole-v1')
-    #     scores = []
-    #     for e in range(self.max_episodes):
-    #         state, _ = env.reset()
-    #         state = np.reshape(state, [1, self.n_states])
-    #         score = 0
-    #         for step in range(self.max_steps):
-    #             action = self.act(state)
-    #             next_state, reward, done, info, _ = env.step(action)
-    #             next_state = np.reshape(next_state, [1, self.n_states])
-    #
-    #             self.remember(state, action, reward, next_state, done)
-    #
-    #             state = next_state
-    #             score += reward
-    #             if done:
-    #                 break
-    #
-    #         if len(self.replay_buffer) > self.batch_size:
-    #             self.replay()
-    #
-    #         if step % self.weights_updating_frequency == 0:
-    #             self.update_target_model()
-    #
-    #         scores.append(score)
-    #         print("Episode: {}/{}, Score: {}".format(e + 1, self.max_episodes, score))
-    #
-    #     return scores
