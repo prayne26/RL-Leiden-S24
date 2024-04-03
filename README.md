@@ -1,9 +1,3 @@
-https://medium.com/@ym1942/deep-q-learning-dqn-tutorial-with-cartpole-v0-5505dbd2409e
-https://keras.io/examples/rl/deep_q_network_breakout/
-
-Also, they mentioned in one of the ancument that we can get inspartion from this repo, but can't use the predeifned one.
-https://github.com/openai/baselines/blob/master/baselines/deepq/README.md
-
 # RL-Leiden-S24: Reinforcement Learning Assignment 2
 ## Goal: Training Deep Q-learning Network on Cart Pole environment
 
