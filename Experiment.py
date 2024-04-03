@@ -57,14 +57,14 @@ def load_run(general_title, test_title):
 
 def dqn_vs_ddqn():
     general_title = 'dqnVSddqn'
-    max_episodes = 200
+    max_episodes = 150
 
-    test_title = 'dqn'
-    scores, evals = dqn_learner(ddqn=False,max_episodes=max_episodes)
-    save_run(scores, evals, general_title, test_title)
+    # test_title = 'dqn'
+    # scores, evals = dqn_learner(ddqn=False,max_episodes=max_episodes)
+    # save_run(scores, evals, general_title, test_title)
 
     test_title = 'ddqn'
-    scores, evals = dqn_learner(ddqn=False, max_episodes=max_episodes)
+    scores, evals = dqn_learner(ddqn=True, max_episodes=max_episodes)
     save_run(scores, evals, general_title, test_title)
 
 def nn_experiment():
