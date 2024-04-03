@@ -132,28 +132,6 @@ class DQNAgent:
     def save(self, name):
         self.model_Q.save_weights(name)
 
-    # def clear_log(self):
-    #     path = "Logs/"
-    #     file_name = "log.txt"
-    #     if not os.path.exists(path):
-    #         os.makedirs(path)
-    #     try:
-    #         with open(path + file_name, "w") as myfile:
-    #             myfile.write("")
-    #     except:
-    #         print("Unable to clear the file.")
-    #
-    # def save_log(self, log):
-    #     path = "Logs/"
-    #     file_name = "log.txt"
-    #     if not os.path.exists(path):
-    #         os.makedirs(path)
-    #     try:
-    #         with open(path + file_name, "a") as myfile:
-    #             myfile.write(log)
-    #     except:
-    #         print("Unable to save the file.")
-
     def evaluate(self, env, model):
         state, _ = env.reset(seed=0)
         state = np.reshape(state, [1, self.n_states])
@@ -213,7 +191,6 @@ def dqn_learner(batch_size=24,
                     e + 1, max_episodes, step, train, agent.total_step_count)
                 print(log)
                 agent.update_target_model(agent.tau, pa_toggle=True)
-                #agent.reset_epsilon()
                 break
             # if agent.total_step_count%agent.weights_updating_frequency==0 and agent.total_step_count != 0 and not ddqn:
             #     agent.update_target_model()
@@ -224,39 +201,5 @@ def dqn_learner(batch_size=24,
             evals.append(evalT)
             print(f'Eval T = {evalT}')
 
-        if np.mean(scores[-min(50, len(scores)):]) >= 195:
-            print(f'problem solved in {e} episodes')
-            break
     env.close()
     return scores, evals
-
-    #
-    # def run_experiment(self):
-    #     env = gym.make('CartPole-v1')
-    #     scores = []
-    #     for e in range(self.max_episodes):
-    #         state, _ = env.reset()
-    #         state = np.reshape(state, [1, self.n_states])
-    #         score = 0
-    #         for step in range(self.max_steps):
-    #             action = self.act(state)
-    #             next_state, reward, done, info, _ = env.step(action)
-    #             next_state = np.reshape(next_state, [1, self.n_states])
-    #
-    #             self.remember(state, action, reward, next_state, done)
-    #
-    #             state = next_state
-    #             score += reward
-    #             if done:
-    #                 break
-    #
-    #         if len(self.replay_buffer) > self.batch_size:
-    #             self.replay()
-    #
-    #         if step % self.weights_updating_frequency == 0:
-    #             self.update_target_model()
-    #
-    #         scores.append(score)
-    #         print("Episode: {}/{}, Score: {}".format(e + 1, self.max_episodes, score))
-    #
-    #     return scores
