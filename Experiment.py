@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 
 
 def make_plot(values, labels, max_episodes, title):
-    x = np.arange(1, max_episodes + 1)
+    x = np.arange(1, max_episodes +1)
 
     plt.figure(figsize=(10, 6))
     if isinstance(labels, list):
@@ -23,8 +23,8 @@ def make_plot(values, labels, max_episodes, title):
 
     plt.xlabel('Episodes', fontsize=12)
     plt.ylabel('Score', fontsize=12)
-    plt.xlim(0, max_episodes)
-    plt.xticks(range(0,  max_episodes, int(0.1*max_episodes)))
+    plt.xlim(0, max_episodes+1)
+    plt.xticks(range(0,  max_episodes+int(0.1*max_episodes), int(0.1*max_episodes)))
     plt.title(title, fontsize=14)
 
     plt.legend(prop={'size': 12})
@@ -34,9 +34,9 @@ def make_plot(values, labels, max_episodes, title):
 
 
 def save_run(scores, evals, general_title, test_title):
-    path = "Logs/"
-    file_name_s = general_title + '_' + test_title + "_score.txt"
-    file_name_e = general_title + '_' + test_title + "_evals.txt"
+    path = "Data/"
+    file_name_s = general_title + '_' + test_title + "_score.csv"
+    file_name_e = general_title + '_' + test_title + "_evals.csv"
 
     if not os.path.exists(path):
         os.makedirs(path)
@@ -89,36 +89,24 @@ def nn_experiment():
         save_run(scores, evals, general_title, test_title)
 
 
+
+
 def lr_experiment():
+    print("Starting tunning learning rate...")
+    general_title = 'lr_experiment'
     max_episodes = 100
-    npl = [24, 24]
+    learning_rates = [0.1, 0.01, 0.001]
 
-    learning_rate = 0.001
-    gamma = 0.9
-
-    policy = 'egreedy'
-    epsilon = 0.99
-    state_size = 4
-    action_size = 2
-    batch_size = 32
-
-    learning_rates = [0.00001, 0.0001, 0.001, 0.01, 0.1, 0.2]
-    perf = {str(lr): [] for lr in learning_rates}
-    perf_mean = {}
+    title = "Tune learning rate"
+    scorces_list = []
+    labels = ['lr='+str(x) for x in learning_rates]
     for lr in learning_rates:
-        scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
+        test_title = 'lr_'+str(lr)
+        scores, evals = dqn_learner(learning_rate=lr, max_episodes=max_episodes)
+        scorces_list.append(scores)
+        save_run(scores, evals, general_title, test_title)
 
-        perf[str(lr)].append(scores)
-        # perf_mean.append(np.mean(scores))
-
-    print("Averges after 10 runns of each config: ")
-    for k, v in zip(perf.keys(), perf_mean):
-        print("{} : {}+/-{}".format(k, np.mean(v[0]), np.std(v[0])))
-
-    title = 'DQN Performance with different NN architecture'
-    file_name = 'Layers_perf.png'
-
-    make_plot(perf, max_episodes, file_name, max_episodes, title)
+    make_plot(scorces_list, labels, max_episodes, title)
 
 
 def gamma_experiment():
@@ -132,10 +120,6 @@ def gamma_experiment():
 
 
 def ablation_study(no_er, no_tn):
-    if no_er == False and no_tn == False:
-        print("Error! Comparing DQN with DQN.")
-        return
-    
     print("Starting ablation study...")
     max_episodes = 150
     npl = [24,24]
@@ -153,16 +137,16 @@ def ablation_study(no_er, no_tn):
     print(scores_dqn, len(scores_dqn))
     
     file_gen_title = "ablation_study"
-    if no_er == False and no_tn == False:
+    if no_er == True and no_tn == True:
         label1, label2 = "DQN", "DQN−ER−TN"
         title = label1 + " vs " + label2
         comp_name = "DQN−EP−TN"
     elif no_er == True and no_tn == False:
-        label1, label2 = "DQN", "DQN−TN"
+        label1, label2 = "DQN", "DQN−ER"
         title = label1 + " vs " + label2
         comp_name = "DQN−TN"
     else:
-        label1, label2 = "DQN", "DQN−E"
+        label1, label2 = "DQN", "DQN−TN"
         title = label1 + " vs " + label2
         comp_name = "DQN−ER"
     
@@ -200,10 +184,10 @@ def main():
     s = time.time()
     if args is None:
         # Chacking various NN architecture
-        nn_experiment()
+        # nn_experiment()
 
         # Checking various learning rate values
-        # lr_experiment()
+        lr_experiment()
 
         # Checking various  exploration methods
         # gamma_experiment()
