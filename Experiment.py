@@ -69,9 +69,13 @@ def dqn_vs_ddqn():
     # scores, evals = dqn_learner(ddqn=False,max_episodes=max_episodes)
     # save_run(scores, evals, general_title, test_title)
 
-    test_title = 'ddqn'
-    scores, evals = dqn_learner(ddqn=True, max_episodes=max_episodes)
+    test_title = 'dqnPA'
+    scores, evals = dqn_learner(max_episodes=max_episodes)
     save_run(scores, evals, general_title, test_title)
+
+    # test_title = 'ddqn'
+    # scores, evals = dqn_learner(ddqn=True, max_episodes=max_episodes)
+    # save_run(scores, evals, general_title, test_title)
 
 def nn_experiment():
     npls1 = [12], [12, 12], [12, 12, 12, 12]
