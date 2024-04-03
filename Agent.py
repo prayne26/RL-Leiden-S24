@@ -114,11 +114,11 @@ class DQNAgent:
             target[0][action] = reward
             if not done:
                 target[0][action] = reward + self.gamma * next_qval
-            self.total_step_count += 1
             states.append(state[0])
             targets.append(target[0])
 
-        self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=0)
+        self.total_step_count += 1
+        self.model_Q.fit(np.array(states), np.array(targets), batch_size=self.batch_size, epochs=1, verbose=1)
 
         if self.epsilon >= self.epsilon_min:
             self.epsilon *= self.epsilon_decay

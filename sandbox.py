@@ -16,7 +16,6 @@ def previewEnvironment():
             print('kil\n')
     env.close()
 
-
 import pygame
 from gymnasium.utils.play import play
 def play_cartgame():
