@@ -22,7 +22,7 @@ def main():
         
 
     max_episodes = 10000
-    npl = [32,32]
+    npl = [24,24]
     
     learning_rate = 0.001 # Here should be tuned value
     gamma = 0.95          # Here should be tuned value

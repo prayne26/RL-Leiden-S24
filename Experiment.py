@@ -8,24 +8,28 @@ import pickle
 import matplotlib.pyplot as plt
 
 
-def make_plot(perf, max_episodes, file_name, title):
+def make_plot(values, labels, max_episodes, title):
     x = np.arange(1, max_episodes + 1)
-    j = 0
-    print(x, perf.values())
+
     plt.figure(figsize=(10, 6))
-    for y in perf.values():
-        j += 1
-        plt.plot(x, y[0], label='DQN ' + str(j))
+    if isinstance(labels, list):
+        for y,l in zip(values, labels):
+            plt.plot(x, y, label=l)
+    elif isinstance(labels, str):
+        plt.plot(x, y, label=l)
+    else:
+        print("Error!")    
 
     plt.xlabel('Episodes', fontsize=12)
     plt.ylabel('Score', fontsize=12)
-    plt.ylim(range(0,  200, 20))
+    plt.xlim(0, max_episodes)
+    plt.xticks(range(0,  max_episodes, int(0.1*max_episodes)))
     plt.title(title, fontsize=14)
 
-    plt.legend(prop={'size': 10})
+    plt.legend(prop={'size': 12})
     plt.grid(True)
-    plt.savefig("Pics/" + file_name)
-    plt.show()
+    plt.savefig("Pics/" + title +".png")
+    # plt.show()
 
 
 def save_run(scores, evals, general_title, test_title):
@@ -85,17 +89,6 @@ def lr_experiment():
     perf = {str(lr): [] for lr in learning_rates}
     perf_mean = {}
     for lr in learning_rates:
-        # for _ in range(10):
-        agent = DQNAgent(state_size=state_size,
-                         action_size=action_size,
-                         learning_rate=lr,
-                         gamma=gamma,
-                         policy=policy,
-                         batch_size=batch_size,
-                         epsilon=epsilon,
-                         npl=npl,
-                         max_episodes=max_episodes)
-
         scores, evals = dqn_learner(NPL=npl, max_episodes=max_episodes)
 
         perf[str(lr)].append(scores)
@@ -108,7 +101,7 @@ def lr_experiment():
     title = 'DQN Performance with different NN architecture'
     file_name = 'Layers_perf.png'
 
-    make_plot(perf, max_episodes, file_name, title)
+    make_plot(perf, max_episodes, file_name, max_episodes, title)
 
 
 def gamma_experiment():
@@ -127,44 +120,56 @@ def ablation_study(no_er, no_tn):
         return
     
     max_episodes = 100
-    npl = [32,32]
+    npl = [24,24]
     
     learning_rate = 0.001 # Here should be tuned value
     gamma = 0.95          # Here should be tuned value
 
     policy = 'egreedy'
     epsilon = 0.8
-    state_size = 4  
-    action_size = 2  
+    tau = 0.998
     batch_size = 32 
     
-    scores_dqn, evals_dqn = dqn_learner(state_size=state_size,
-                                        action_size=action_size,
-                                        learning_rate=learning_rate,
+    scores_dqn, evals_dqn = dqn_learner(learning_rate=learning_rate,
                                         gamma=gamma,
-                                        policy=policy,
                                         batch_size=batch_size,
                                         epsilon=epsilon,
                                         NPL=npl,
-                                        tau=0.1,
+                                        tau=tau,
                                         policy=policy,
                                         max_episodes=max_episodes)
     
-    scores_comp, evals_comp = dqn_learner(state_size=state_size,
-                                          action_size=action_size,
-                                          learning_rate=learning_rate,
+    scores_comp, evals_comp = dqn_learner(learning_rate=learning_rate,
                                           gamma=gamma,
-                                          policy=policy,
                                           batch_size=batch_size,
                                           epsilon=epsilon,
                                           NPL=npl,
-                                          tau=0.1,
+                                          tau=tau,
                                           policy=policy,
                                           max_episodes=max_episodes, 
                                           no_ER=no_er, no_TN=no_tn)
 
-    
+    print(evals_dqn)
+    print(evals_comp)
 
+    file_gen_title = "ablation_study"
+    if no_er == False and no_tn == False:
+        label1, label2 = "DQN", "DQN−ER−TN"
+        title = label1 + " vs " + label2
+        comp_name = "DQN−EP−TN"
+    elif no_er == True and no_tn == False:
+        label1, label2 = "DQN", "DQN−TN"
+        title = label1 + " vs " + label2
+        comp_name = "DQN−TN"
+    else:
+        label1, label2 = "DQN", "DQN−E"
+        title = label1 + " vs " + label2
+        comp_name = "DQN−ER"
+    
+    save_run(scores_dqn, evals_dqn, file_gen_title, "DQN_for_"+comp_name)
+    save_run(scores_comp, evals_comp, file_gen_title, comp_name)
+
+    make_plot([scores_dqn, scores_comp], [label1, label2], max_episodes, title)
 
 def main():
     args = sys.argv[1:] if len(sys.argv) > 1 else None

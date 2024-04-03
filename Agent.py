@@ -105,7 +105,7 @@ class DQNAgent:
             q_action = np.argmax(self.model_Q.predict(next_state, verbose=0)[0])
 
             if not no_tn:
-                self.model_T.set_weights.set_weights(self.model_Q.get_weights())
+                self.model_T.set_weights(self.model_Q.get_weights())
 
             next_qval = self.model_T.predict(next_state, verbose=0)[0][q_action]
             # next_qval = np.amax(self.model_T.predict(next_state, verbose=0)[0])
