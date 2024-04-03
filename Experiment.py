@@ -4,6 +4,7 @@ import numpy as np
 import os
 import sys
 import pickle
+import pandas as pd
 
 import matplotlib.pyplot as plt
 
@@ -34,13 +35,18 @@ def make_plot(values, labels, max_episodes, title):
 
 def save_run(scores, evals, general_title, test_title):
     path = "Logs/"
-    file_name = general_title + '_' + test_title + ".txt"
+    file_name_s = general_title + '_' + test_title + "_score.txt"
+    file_name_e = general_title + '_' + test_title + "_evals.txt"
+
     if not os.path.exists(path):
         os.makedirs(path)
     try:
         # pickle to store lists instead of strings
-        with open(path + file_name, "wb") as myfile:
-            pickle.dump([scores, evals], myfile)
+        with open(path + file_name_s, "wb") as myfile:
+            pd.DataFrame({'scores':scores}).to_csv(myfile)
+
+        with open(path + file_name_e, "wb") as myfile:
+            pd.DataFrame({'Evals':evals}).to_csv(myfile) 
     except:
         print("Unable to save the file.")
 
@@ -88,7 +94,7 @@ def lr_experiment():
     npl = [24, 24]
 
     learning_rate = 0.001
-    gamma = 0.9,
+    gamma = 0.9
 
     policy = 'egreedy'
     epsilon = 0.99
@@ -130,39 +136,22 @@ def ablation_study(no_er, no_tn):
         print("Error! Comparing DQN with DQN.")
         return
     
-    max_episodes = 200
+    print("Starting ablation study...")
+    max_episodes = 150
     npl = [24,24]
     
-    learning_rate = 0.001 # Here should be tuned value
-    gamma = 0.95          # Here should be tuned value
+    learning_rate = 0.001 
+    gamma = 0.9          
 
     policy = 'egreedy'
-    epsilon = 0.8
-    tau = 0.998
-    batch_size = 32 
-    
-    scores_dqn, evals_dqn = dqn_learner(learning_rate=learning_rate,
-                                        gamma=gamma,
-                                        batch_size=batch_size,
-                                        epsilon=epsilon,
-                                        NPL=npl,
-                                        tau=tau,
-                                        policy=policy,
-                                        max_episodes=max_episodes)
-    
-    scores_comp, evals_comp = dqn_learner(learning_rate=learning_rate,
-                                          gamma=gamma,
-                                          batch_size=batch_size,
-                                          epsilon=epsilon,
-                                          NPL=npl,
-                                          tau=tau,
-                                          policy=policy,
-                                          max_episodes=max_episodes, 
-                                          no_ER=no_er, no_TN=no_tn)
+    epsilon = 1.0
+    tau = 0.1
+    batch_size = 24
 
-    print(evals_dqn)
-    print(evals_comp)
-
+    file_name_DQN_results = ".\Data\DQN_150.csv"
+    scores_dqn = pd.read_csv(file_name_DQN_results, names=["scores"])["scores"].to_list()
+    print(scores_dqn, len(scores_dqn))
+    
     file_gen_title = "ablation_study"
     if no_er == False and no_tn == False:
         label1, label2 = "DQN", "DQN−ER−TN"
@@ -177,8 +166,17 @@ def ablation_study(no_er, no_tn):
         title = label1 + " vs " + label2
         comp_name = "DQN−ER"
     
-    save_run(scores_dqn, evals_dqn, file_gen_title, "DQN_for_"+comp_name)
+    scores_comp, evals_comp = dqn_learner(learning_rate=learning_rate,
+                                          gamma=gamma,
+                                          batch_size=batch_size,
+                                          epsilon=epsilon,
+                                          NPL=npl,
+                                          tau=tau,
+                                          policy=policy,
+                                          max_episodes=max_episodes, 
+                                          no_ER=no_er, no_TN=no_tn)
     save_run(scores_comp, evals_comp, file_gen_title, comp_name)
+
 
     make_plot([scores_dqn, scores_comp], [label1, label2], max_episodes, title)
 
@@ -217,5 +215,5 @@ def main():
 
 
 if __name__ == '__main__':
-    #main()
-    dqn_vs_ddqn()
+    main()
+    # dqn_vs_ddqn()
